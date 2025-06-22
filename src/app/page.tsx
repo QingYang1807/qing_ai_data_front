@@ -1,0 +1,214 @@
+'use client';
+
+import React, { useState } from 'react';
+import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
+import Dashboard from '@/components/dashboard/Dashboard';
+import DataSourceList from '@/components/datasource/DataSourceList';
+
+// 模拟用户数据
+const mockUser = {
+  id: '1',
+  name: '张三',
+  email: 'zhangsan@example.com',
+  role: 'Admin',
+  team: 'Data Team',
+  avatar: undefined
+};
+
+// 模拟通知数据
+const mockNotifications = [
+  {
+    id: '1',
+    title: '数据处理完成',
+    message: '用户行为数据清洗任务已完成',
+    timestamp: '2024-01-15T10:30:00Z',
+    read: false,
+    type: 'success' as const
+  },
+  {
+    id: '2',
+    title: '系统更新',
+    message: '系统将于今晚进行例行维护',
+    timestamp: '2024-01-15T09:00:00Z',
+    read: true,
+    type: 'info' as const
+  }
+];
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+  };
+
+  const handleUserMenuClick = () => {
+    console.log('User menu clicked');
+  };
+
+  const handleMenuClick = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'datasource':
+        return <DataSourceList />;
+      case 'dataset':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">数据集管理</h2>
+              <p className="text-gray-600">数据集管理功能正在开发中...</p>
+            </div>
+          </div>
+        );
+      case 'processing':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">数据处理</h2>
+              <p className="text-gray-600">数据处理功能正在开发中...</p>
+            </div>
+          </div>
+        );
+      case 'quality':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">数据质量</h2>
+              <p className="text-gray-600">数据质量功能正在开发中...</p>
+            </div>
+          </div>
+        );
+      case 'workflow':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">工作流配置</h2>
+              <p className="text-gray-600">工作流配置功能正在开发中...</p>
+            </div>
+          </div>
+        );
+      case 'knowledge':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">知识抽取</h2>
+              <p className="text-gray-600">知识抽取功能正在开发中...</p>
+            </div>
+          </div>
+        );
+      case 'automation':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">自动化处理</h2>
+              <p className="text-gray-600">自动化处理功能正在开发中...</p>
+            </div>
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">系统设置</h2>
+              <p className="text-gray-600">系统设置功能正在开发中...</p>
+            </div>
+          </div>
+        );
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col">
+      {/* Header */}
+      <Header
+        user={mockUser}
+        notifications={mockNotifications}
+        onNotificationClick={handleNotificationClick}
+        onUserMenuClick={handleUserMenuClick}
+        onMenuClick={handleMenuClick}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          isCollapsed={sidebarCollapsed}
+        />
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto">
+          {renderActiveTab()}
+        </main>
+      </div>
+
+      {/* Notifications Panel */}
+      {showNotifications && (
+        <div className="fixed top-16 right-6 w-96 glass-card p-4 z-50 animate-slide-up max-h-96 overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">通知</h3>
+            <button
+              onClick={() => setShowNotifications(false)}
+              className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            >
+              ×
+            </button>
+          </div>
+          
+          {mockNotifications.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">暂无通知</p>
+          ) : (
+            <div className="space-y-3">
+              {mockNotifications.slice(0, 10).map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-3 rounded-lg border transition-colors duration-200 ${
+                    notification.read 
+                      ? 'bg-glass-50 border-glass-200' 
+                      : 'bg-blue-50/50 border-blue-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-gray-900">
+                        {notification.title}
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {new Date(notification.timestamp).toLocaleString('zh-CN')}
+                      </p>
+                    </div>
+                    {!notification.read && (
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Click outside to close notifications */}
+      {showNotifications && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowNotifications(false)}
+        />
+      )}
+    </div>
+  );
+} 

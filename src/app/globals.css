@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    background: linear-gradient(135deg, #1E88E5 0%, #ffffff 100%);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply backdrop-blur-md bg-glass-100 border border-glass-200 rounded-xl shadow-glass;
+  }
+  
+  .glass-card-dark {
+    @apply backdrop-blur-md bg-glass-dark-100 border border-glass-dark-200 rounded-xl shadow-glass;
+  }
+  
+  .btn-glass {
+    @apply backdrop-blur-md bg-glass-200 hover:bg-glass-300 border border-glass-300 rounded-lg px-4 py-2 transition-all duration-200 font-medium;
+  }
+  
+  .btn-glass-primary {
+    @apply backdrop-blur-md bg-blue-500/20 hover:bg-blue-500/30 border border-blue-300/30 text-blue-700 rounded-lg px-4 py-2 transition-all duration-200 font-medium;
+  }
+  
+  .input-glass {
+    @apply backdrop-blur-md bg-glass-100 border border-glass-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200;
+  }
+  
+  .sidebar-glass {
+    @apply backdrop-blur-xl bg-glass-100 border-r border-glass-200 shadow-glass-lg;
+  }
+  
+  .header-glass {
+    @apply backdrop-blur-xl bg-glass-200 border-b border-glass-300 shadow-glass;
+  }
+  
+  .table-glass {
+    @apply backdrop-blur-md bg-glass-50 border border-glass-200 rounded-lg overflow-hidden;
+  }
+  
+  .table-glass th {
+    @apply bg-glass-200 border-b border-glass-300 px-4 py-3 text-left text-sm font-medium text-gray-700;
+  }
+  
+  .table-glass td {
+    @apply border-b border-glass-100 px-4 py-3 text-sm text-gray-900;
+  }
+  
+  .table-glass tr:hover {
+    @apply bg-glass-100;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+} 
