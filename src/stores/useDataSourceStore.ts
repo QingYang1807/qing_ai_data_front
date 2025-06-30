@@ -9,6 +9,7 @@ interface DataSourceState {
   total: number;
   currentPage: number;
   pageSize: number;
+  serverConnected: boolean;
   
   // 操作方法
   fetchDataSources: (params?: DataSourceQueryRequest) => Promise<void>;
@@ -21,6 +22,7 @@ interface DataSourceState {
   setError: (error: string | null) => void;
   setPage: (page: number) => void;
   setPageSize: (pageSize: number) => void;
+  setServerConnected: (connected: boolean) => void;
 }
 
 export const useDataSourceStore = create<DataSourceState>((set, get) => ({
@@ -30,6 +32,7 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
   total: 0,
   currentPage: 1,
   pageSize: 10,
+  serverConnected: true,
 
   fetchDataSources: async (params = {}) => {
     set({ loading: true, error: null });
@@ -56,15 +59,38 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
         currentPage: response.data.page,
         pageSize: response.data.size,
         loading: false,
+        serverConnected: true,
       });
     } catch (error: any) {
       console.error('获取数据源列表失败:', error);
-      set({ 
-        error: error.message || '获取数据源列表失败', 
-        loading: false,
-        dataSources: [],
-        total: 0,
-      });
+      
+      // 检查是否是网络错误（服务器未启动或宕机）
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || // axios request 存在但没有响应
+        !error.response; // 没有响应对象说明网络问题
+      
+      if (isNetworkError) {
+        // 网络错误时，静默处理，显示空列表并标记服务器未连接
+        set({ 
+          loading: false,
+          dataSources: [],
+          total: 0,
+          serverConnected: false,
+          error: null, // 不设置error，避免显示错误提示
+        });
+      } else {
+        // 其他错误（如业务错误、权限错误等）仍然正常显示错误信息
+        set({ 
+          error: error.message || '获取数据源列表失败', 
+          loading: false,
+          dataSources: [],
+          total: 0,
+          serverConnected: true, // 能收到响应说明服务器是连接的
+        });
+      }
     }
   },
 
@@ -86,33 +112,51 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       await datasourceApi.create(data);
       
       // 创建成功后刷新数据，回到第一页
-      set({ currentPage: 1 });
+      set({ currentPage: 1, serverConnected: true });
       await get().fetchDataSources({ page: 1 });
     } catch (error: any) {
       console.error('创建数据源失败:', error);
       
-      // 解析后端验证错误信息
-      let errorMessage = '创建数据源失败';
-      if (error.response?.data?.message) {
-        const backendMessage = error.response.data.message;
-        if (backendMessage.includes('数据源配置不能为空')) {
-          errorMessage = '请完善数据源连接配置信息';
-        } else if (backendMessage.includes('数据源名称不能为空')) {
-          errorMessage = '数据源名称不能为空';
-        } else if (backendMessage.includes('数据源类型不能为空')) {
-          errorMessage = '请选择数据源类型';
-        } else {
-          errorMessage = backendMessage;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      // 检查是否是网络错误
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || 
+        !error.response;
       
-      set({ 
-        error: errorMessage, 
-        loading: false 
-      });
-      throw new Error(errorMessage);
+      if (isNetworkError) {
+        set({ 
+          loading: false,
+          serverConnected: false,
+          error: null,
+        });
+        throw new Error('无法连接到服务器，请检查服务器状态');
+      } else {
+        // 解析后端验证错误信息
+        let errorMessage = '创建数据源失败';
+        if (error.response?.data?.message) {
+          const backendMessage = error.response.data.message;
+          if (backendMessage.includes('数据源配置不能为空')) {
+            errorMessage = '请完善数据源连接配置信息';
+          } else if (backendMessage.includes('数据源名称不能为空')) {
+            errorMessage = '数据源名称不能为空';
+          } else if (backendMessage.includes('数据源类型不能为空')) {
+            errorMessage = '请选择数据源类型';
+          } else {
+            errorMessage = backendMessage;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        set({ 
+          error: errorMessage, 
+          loading: false,
+          serverConnected: true,
+        });
+        throw new Error(errorMessage);
+      }
     }
   },
 
@@ -131,32 +175,51 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       await datasourceApi.update(id, data);
       
       // 更新成功后刷新当前页数据
+      set({ serverConnected: true });
       await get().fetchDataSources();
     } catch (error: any) {
       console.error('更新数据源失败:', error);
       
-      // 解析后端验证错误信息
-      let errorMessage = '更新数据源失败';
-      if (error.response?.data?.message) {
-        const backendMessage = error.response.data.message;
-        if (backendMessage.includes('数据源配置不能为空')) {
-          errorMessage = '请完善数据源连接配置信息';
-        } else if (backendMessage.includes('数据源名称不能为空')) {
-          errorMessage = '数据源名称不能为空';
-        } else if (backendMessage.includes('数据源不存在')) {
-          errorMessage = '数据源不存在或已被删除';
-        } else {
-          errorMessage = backendMessage;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      // 检查是否是网络错误
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || 
+        !error.response;
       
-      set({ 
-        error: errorMessage, 
-        loading: false 
-      });
-      throw new Error(errorMessage);
+      if (isNetworkError) {
+        set({ 
+          loading: false,
+          serverConnected: false,
+          error: null,
+        });
+        throw new Error('无法连接到服务器，请检查服务器状态');
+      } else {
+        // 解析后端验证错误信息
+        let errorMessage = '更新数据源失败';
+        if (error.response?.data?.message) {
+          const backendMessage = error.response.data.message;
+          if (backendMessage.includes('数据源配置不能为空')) {
+            errorMessage = '请完善数据源连接配置信息';
+          } else if (backendMessage.includes('数据源名称不能为空')) {
+            errorMessage = '数据源名称不能为空';
+          } else if (backendMessage.includes('数据源不存在')) {
+            errorMessage = '数据源不存在或已被删除';
+          } else {
+            errorMessage = backendMessage;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        set({ 
+          error: errorMessage, 
+          loading: false,
+          serverConnected: true,
+        });
+        throw new Error(errorMessage);
+      }
     }
   },
 
@@ -175,17 +238,38 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       const targetPage = currentState.currentPage > totalPages ? Math.max(1, totalPages) : currentState.currentPage;
       
       if (targetPage !== currentState.currentPage) {
-        set({ currentPage: targetPage });
+        set({ currentPage: targetPage, serverConnected: true });
+      } else {
+        set({ serverConnected: true });
       }
       
       await get().fetchDataSources({ page: targetPage });
     } catch (error: any) {
       console.error('删除数据源失败:', error);
-      set({ 
-        error: error.message || '删除数据源失败', 
-        loading: false 
-      });
-      throw error;
+      
+      // 检查是否是网络错误
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || 
+        !error.response;
+      
+      if (isNetworkError) {
+        set({ 
+          loading: false,
+          serverConnected: false,
+          error: null,
+        });
+        throw new Error('无法连接到服务器，请检查服务器状态');
+      } else {
+        set({ 
+          error: error.message || '删除数据源失败', 
+          loading: false,
+          serverConnected: true,
+        });
+        throw error;
+      }
     }
   },
 
@@ -196,14 +280,29 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       
       if (response.data.success) {
         // 连接成功后刷新数据源列表，更新状态
+        set({ serverConnected: true });
         await get().fetchDataSources();
       }
       
       return response.data.success;
     } catch (error: any) {
       console.error('测试连接失败:', error);
-      set({ error: error.message || '测试连接失败' });
-      return false;
+      
+      // 检查是否是网络错误
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || 
+        !error.response;
+      
+      if (isNetworkError) {
+        set({ serverConnected: false });
+        throw new Error('无法连接到服务器，请检查服务器状态');
+      } else {
+        set({ serverConnected: true });
+        throw error;
+      }
     }
   },
 
@@ -218,14 +317,34 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       }
       
       // 操作成功后刷新数据
+      set({ serverConnected: true });
       await get().fetchDataSources();
     } catch (error: any) {
       console.error('操作失败:', error);
-      set({ 
-        error: error.message || '操作失败', 
-        loading: false 
-      });
-      throw error;
+      
+      // 检查是否是网络错误
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || 
+        !error.response;
+      
+      if (isNetworkError) {
+        set({ 
+          loading: false,
+          serverConnected: false,
+          error: null,
+        });
+        throw new Error('无法连接到服务器，请检查服务器状态');
+      } else {
+        set({ 
+          error: error.message || '操作失败', 
+          loading: false,
+          serverConnected: true,
+        });
+        throw error;
+      }
     }
   },
 
@@ -233,4 +352,5 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
   setError: (error) => set({ error }),
   setPage: (page) => set({ currentPage: page }),
   setPageSize: (pageSize) => set({ pageSize }),
+  setServerConnected: (connected: boolean) => set({ serverConnected: connected }),
 })); 

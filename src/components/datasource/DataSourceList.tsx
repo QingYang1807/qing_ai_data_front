@@ -196,9 +196,11 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
     total,
     currentPage,
     pageSize,
+    serverConnected,
     fetchDataSources, 
     deleteDataSource, 
-    testConnection 
+    testConnection,
+    toggleEnable
   } = useDataSourceStore();
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -458,7 +460,20 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 text-shadow">数据源管理</h1>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-3xl font-bold text-gray-900 text-shadow">数据源管理</h1>
+            {/* 服务器连接状态指示器 */}
+            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+              serverConnected 
+                ? 'bg-green-100 text-green-700 border border-green-200' 
+                : 'bg-orange-100 text-orange-700 border border-orange-200'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                serverConnected ? 'bg-green-500' : 'bg-orange-500'
+              }`}></div>
+              <span>{serverConnected ? '服务已连接' : '服务未连接'}</span>
+            </div>
+          </div>
           <p className="text-gray-600 mt-1">管理和配置您的数据源连接</p>
         </div>
         <div className="flex items-center space-x-3">
@@ -472,6 +487,8 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
           <button 
             onClick={onAddDataSource}
             className="btn-glass-primary flex items-center space-x-2"
+            disabled={!serverConnected}
+            title={!serverConnected ? "请先确保服务器连接正常" : "添加新的数据源"}
           >
             <Plus className="w-4 h-4" />
             <span>添加数据源</span>
@@ -550,16 +567,53 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
       <div className="glass-card overflow-hidden">
         {filteredDataSources.length === 0 ? (
           <div className="p-12 text-center">
-            <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">暂无数据源</h3>
-            <p className="text-gray-500 mb-4">开始添加您的第一个数据源连接</p>
-            <button 
-              onClick={handleAddDataSource}
-              className="btn-glass-primary"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              添加数据源
-            </button>
+            {!serverConnected ? (
+              // 服务器未连接的提示
+              <>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-orange-500" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">无法连接到服务器</h3>
+                <p className="text-gray-500 mb-4">
+                  数据源服务暂时不可用，请检查：<br/>
+                  • 后台服务是否已启动<br/>
+                  • 网络连接是否正常<br/>
+                  • 服务地址配置是否正确
+                </p>
+                <div className="flex items-center justify-center space-x-3">
+                  <button 
+                    onClick={() => fetchDataSources()}
+                    className="btn-glass-secondary flex items-center space-x-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>重试连接</span>
+                  </button>
+                  <button 
+                    onClick={handleAddDataSource}
+                    className="btn-glass-primary flex items-center space-x-2"
+                    disabled
+                    title="服务器连接后可添加数据源"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>添加数据源</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              // 正常的空列表提示
+              <>
+                <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">暂无数据源</h3>
+                <p className="text-gray-500 mb-4">开始添加您的第一个数据源连接</p>
+                <button 
+                  onClick={handleAddDataSource}
+                  className="btn-glass-primary"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  添加数据源
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <>
