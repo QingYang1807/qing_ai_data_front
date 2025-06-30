@@ -34,35 +34,56 @@ export enum DataSourceStatus {
   ERROR = "ERROR",
 }
 
+// 数据源配置类型
+export interface DataSourceConfig {
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  url?: string;
+  accessKey?: string;
+  secretKey?: string;
+  region?: string;
+  bucket?: string;
+  endpoint?: string;
+  apiKey?: string;
+  token?: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+  ssl?: boolean;
+  [key: string]: any;
+}
+
 // 数据源实体类型
 export interface DataSource {
-  id: string;
+  id: number | string;
   name: string;
   type: DataSourceType;
-  host: string;
-  port: number;
-  database?: string;
-  username: string;
-  password: string;
-  connectionUrl: string;
+  config: DataSourceConfig;
   description?: string;
-  status: DataSourceStatus;
-  isEnabled: boolean;
-  createdTime: string;
-  updatedTime: string;
-  createdBy: string;
-  updatedBy: string;
+  status: number | string; // 0-未连接，1-连接成功，2-连接失败
+  enabled: number | boolean; // 0-禁用，1-启用
+  lastConnectTime?: string;
+  creator?: string;
+  createTime: string;
+  updater?: string;
+  updateTime: string;
+  
+  // 兼容字段（从config中解析）
+  host?: string;
+  port?: number;
+  database?: string;
+  username?: string;
+  password?: string;
+  connectionUrl?: string;
 }
 
 // 数据源创建DTO
 export interface DataSourceCreateRequest {
   name: string;
   type: DataSourceType;
-  host: string;
-  port: number;
-  database?: string;
-  username: string;
-  password: string;
+  config: DataSourceConfig;
   description?: string;
 }
 
@@ -70,11 +91,7 @@ export interface DataSourceCreateRequest {
 export interface DataSourceUpdateRequest {
   name?: string;
   type?: DataSourceType;
-  host?: string;
-  port?: number;
-  database?: string;
-  username?: string;
-  password?: string;
+  config?: DataSourceConfig;
   description?: string;
 }
 

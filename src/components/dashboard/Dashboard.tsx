@@ -99,7 +99,7 @@ const Dashboard: React.FC = () => {
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 text-shadow mb-2">数据概览</h1>
-        <p className="text-gray-600">欢迎回到青AI数据平台，查看您的数据处理概况</p>
+        <p className="text-gray-600">欢迎回到AI数据平台，查看您的数据处理概况</p>
       </div>
 
       {/* Stats Grid */}
