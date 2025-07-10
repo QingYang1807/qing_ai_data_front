@@ -42,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="header-glass sticky top-0 z-50 h-16 flex items-center justify-between px-6">
+    <header className="header-glass sticky top-0 z-50 h-16 flex items-center justify-between px-6 border-b border-white/20 flex-shrink-0">
       {/* Mobile Menu Button */}
       <button
         onClick={onMenuClick}

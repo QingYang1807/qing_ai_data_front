@@ -41,11 +41,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <aside className={clsx(
-      'sidebar-glass h-full flex flex-col transition-all duration-300',
+      'sidebar-glass h-full flex flex-col transition-all duration-300 border-r border-white/20',
       isCollapsed ? 'w-16' : 'w-64'
     )}>
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -75,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer */}
       {!isCollapsed && (
-        <div className="p-4 border-t border-glass-200">
+        <div className="p-4 border-t border-glass-200 flex-shrink-0">
           <div className="glass-card p-3">
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>

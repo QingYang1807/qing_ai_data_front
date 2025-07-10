@@ -544,6 +544,52 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
         </div>
       </div>
 
+{/* Statistics */}
+<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">总数据源</p>
+              <p className="text-2xl font-bold text-gray-900">{dataSources.length}</p>
+            </div>
+            <Database className="w-8 h-8 text-blue-500" />
+          </div>
+        </div>
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">已连接</p>
+              <p className="text-2xl font-bold text-green-900">
+                {dataSources.filter(ds => (typeof ds.status === 'string' ? parseInt(ds.status) : ds.status) === 1).length}
+              </p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-green-500" />
+          </div>
+        </div>
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">连接失败</p>
+              <p className="text-2xl font-bold text-red-900">
+                {dataSources.filter(ds => (typeof ds.status === 'string' ? parseInt(ds.status) : ds.status) === 2).length}
+              </p>
+            </div>
+            <XCircle className="w-8 h-8 text-red-500" />
+          </div>
+        </div>
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">已启用</p>
+              <p className="text-2xl font-bold text-blue-900">
+                {dataSources.filter(ds => (typeof ds.enabled === 'boolean' ? ds.enabled : Boolean(ds.enabled))).length}
+              </p>
+            </div>
+            <Power className="w-8 h-8 text-blue-500" />
+          </div>
+        </div>
+      </div>
+      
       {/* Filters */}
       <div className="glass-card p-4">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
@@ -830,52 +876,6 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
             )}
           </>
         )}
-      </div>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">总数据源</p>
-              <p className="text-2xl font-bold text-gray-900">{dataSources.length}</p>
-            </div>
-            <Database className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">已连接</p>
-              <p className="text-2xl font-bold text-green-900">
-                {dataSources.filter(ds => (typeof ds.status === 'string' ? parseInt(ds.status) : ds.status) === 1).length}
-              </p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-green-500" />
-          </div>
-        </div>
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">连接失败</p>
-              <p className="text-2xl font-bold text-red-900">
-                {dataSources.filter(ds => (typeof ds.status === 'string' ? parseInt(ds.status) : ds.status) === 2).length}
-              </p>
-            </div>
-            <XCircle className="w-8 h-8 text-red-500" />
-          </div>
-        </div>
-        <div className="glass-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">已启用</p>
-              <p className="text-2xl font-bold text-blue-900">
-                {dataSources.filter(ds => (typeof ds.enabled === 'boolean' ? ds.enabled : Boolean(ds.enabled))).length}
-              </p>
-            </div>
-            <Power className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
       </div>
 
       {/* Settings Modal */}

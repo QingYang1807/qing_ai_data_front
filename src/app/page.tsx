@@ -128,8 +128,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col">
-      {/* Header */}
+    <div className="h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col fixed inset-0">
+      {/* Header - Fixed at top */}
       <Header
         user={mockUser}
         notifications={mockNotifications}
@@ -138,17 +138,17 @@ export default function Home() {
         onMenuClick={handleMenuClick}
       />
 
-      {/* Main Content */}
+      {/* Main Content - Fill remaining height */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
+        {/* Sidebar - Fixed left, full height */}
         <Sidebar
           activeTab={activeTab}
           onTabChange={setActiveTab}
           isCollapsed={sidebarCollapsed}
         />
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Content Area - Scrollable */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
           {renderActiveTab()}
         </main>
       </div>
