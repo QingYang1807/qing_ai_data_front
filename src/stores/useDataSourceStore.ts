@@ -13,6 +13,8 @@ interface DataSourceState {
   
   // 操作方法
   fetchDataSources: (params?: DataSourceQueryRequest) => Promise<void>;
+  refreshDataSources: (params?: DataSourceQueryRequest) => Promise<void>;
+  checkServerConnection: () => Promise<boolean>;
   createDataSource: (data: any) => Promise<void>;
   updateDataSource: (id: string, data: any) => Promise<void>;
   deleteDataSource: (id: string) => Promise<void>;
@@ -32,7 +34,7 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
   total: 0,
   currentPage: 1,
   pageSize: 10,
-  serverConnected: true,
+  serverConnected: false, // 初始设为false，等API调用成功后再设为true
 
   fetchDataSources: async (params = {}) => {
     set({ loading: true, error: null });
@@ -90,6 +92,89 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
           total: 0,
           serverConnected: true, // 能收到响应说明服务器是连接的
         });
+      }
+    }
+  },
+
+  refreshDataSources: async (params = {}) => {
+    // 静默刷新，不触发loading状态变化
+    try {
+      const currentState = get();
+      
+      // 如果传入了新的page参数，先更新state
+      if (params.page && params.page !== currentState.currentPage) {
+        set({ currentPage: params.page });
+      }
+      
+      const requestParams = {
+        page: params.page || currentState.currentPage,
+        size: params.size || currentState.pageSize,
+        ...params,
+      };
+
+      // 调用真实API
+      const response = await datasourceApi.getList(requestParams);
+      
+      // 只更新数据，不更新loading状态
+      set({
+        dataSources: response.data.records,
+        total: response.data.total,
+        currentPage: response.data.page,
+        pageSize: response.data.size,
+        serverConnected: true,
+        error: null, // 清除之前的错误
+      });
+    } catch (error: any) {
+      console.error('刷新数据源列表失败:', error);
+      
+      // 检查是否是网络错误（服务器未启动或宕机）
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || // axios request 存在但没有响应
+        !error.response; // 没有响应对象说明网络问题
+      
+      if (isNetworkError) {
+        // 网络错误时，只更新服务器连接状态
+        set({ 
+          serverConnected: false,
+        });
+        throw new Error('无法连接到服务器，请检查服务器状态');
+      } else {
+        // 其他错误抛出，让调用者处理
+        set({ 
+          serverConnected: true, // 能收到响应说明服务器是连接的
+        });
+        throw error;
+      }
+    }
+  },
+
+  checkServerConnection: async () => {
+    try {
+      // 调用一个轻量级API来检查服务器连接状态
+      const response = await datasourceApi.getList({ page: 1, size: 1 });
+      set({ serverConnected: true });
+      return true;
+    } catch (error: any) {
+      console.log('服务器连接检查失败:', error.message);
+      
+      // 检查是否是网络错误
+      const isNetworkError = 
+        error.code === 'ECONNREFUSED' || 
+        error.message === 'Network Error' ||
+        error.message?.includes('网络连接失败') ||
+        error.request || 
+        !error.response;
+      
+      if (isNetworkError) {
+        set({ serverConnected: false });
+        return false;
+      } else {
+        // 即使是业务错误，也说明服务器是连接的
+        set({ serverConnected: true });
+        return true;
       }
     }
   },
@@ -174,9 +259,9 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       // 调用真实API更新数据源
       await datasourceApi.update(id, data);
       
-      // 更新成功后刷新当前页数据
-      set({ serverConnected: true });
-      await get().fetchDataSources();
+      // 更新成功后静默刷新当前页数据
+      set({ loading: false, serverConnected: true });
+      await get().refreshDataSources();
     } catch (error: any) {
       console.error('更新数据源失败:', error);
       
@@ -238,12 +323,12 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       const targetPage = currentState.currentPage > totalPages ? Math.max(1, totalPages) : currentState.currentPage;
       
       if (targetPage !== currentState.currentPage) {
-        set({ currentPage: targetPage, serverConnected: true });
+        set({ currentPage: targetPage, loading: false, serverConnected: true });
       } else {
-        set({ serverConnected: true });
+        set({ loading: false, serverConnected: true });
       }
       
-      await get().fetchDataSources({ page: targetPage });
+      await get().refreshDataSources({ page: targetPage });
     } catch (error: any) {
       console.error('删除数据源失败:', error);
       
@@ -279,9 +364,9 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       const response = await datasourceApi.testConnection(id);
       
       if (response.data.success) {
-        // 连接成功后刷新数据源列表，更新状态
+        // 连接成功后静默刷新数据源列表，更新状态
         set({ serverConnected: true });
-        await get().fetchDataSources();
+        await get().refreshDataSources();
       }
       
       return response.data.success;
@@ -316,9 +401,9 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
         await datasourceApi.disable(id);
       }
       
-      // 操作成功后刷新数据
-      set({ serverConnected: true });
-      await get().fetchDataSources();
+      // 操作成功后静默刷新数据
+      set({ loading: false, serverConnected: true });
+      await get().refreshDataSources();
     } catch (error: any) {
       console.error('操作失败:', error);
       

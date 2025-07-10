@@ -154,12 +154,20 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
 
   return (
     <div 
-      className={`fixed top-0 right-0 p-4 transition-all duration-500 z-50 ${
+      className={`fixed top-4 right-4 transition-all duration-500 ${
         isVisible ? 'transform translate-x-0 opacity-100' : 'transform translate-x-full opacity-0'
       }`}
-      style={{ zIndex: 10001 }}
+      style={{ 
+        zIndex: 99999,
+        pointerEvents: isVisible ? 'auto' : 'none'
+      }}
     >
-      <div className={`glass-card p-4 border-l-4 ${styles.borderLeft} shadow-xl max-w-sm notification`}>
+      <div className={`glass-card p-4 border-l-4 ${styles.borderLeft} shadow-2xl max-w-sm min-w-[320px] backdrop-blur-md`}
+           style={{ 
+             background: 'rgba(255, 255, 255, 0.95)',
+             backdropFilter: 'blur(12px)',
+             WebkitBackdropFilter: 'blur(12px)',
+           }}>
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
             {getIcon()}
@@ -173,9 +181,10 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onClose();
+              setIsVisible(false);
+              setTimeout(onClose, 300);
             }}
-            className="flex-shrink-0 ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex-shrink-0 ml-2 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100"
           >
             <X className="w-4 h-4" />
           </button>
@@ -197,7 +206,9 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
     currentPage,
     pageSize,
     serverConnected,
-    fetchDataSources, 
+    fetchDataSources,
+    refreshDataSources,
+    checkServerConnection, 
     deleteDataSource, 
     testConnection,
     toggleEnable
@@ -218,6 +229,9 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   // 测试连接状态
   const [testingConnections, setTestingConnections] = useState<Set<string>>(new Set());
   
+  // 刷新状态
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   // 通知状态
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info' | 'warning';
@@ -229,8 +243,17 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
-    fetchDataSources();
-  }, [fetchDataSources]);
+    // 页面加载时先检查服务器连接状态
+    const initializeConnection = async () => {
+      const connected = await checkServerConnection();
+      if (connected) {
+        // 如果服务器连接正常，再加载数据源列表
+        fetchDataSources();
+      }
+    };
+    
+    initializeConnection();
+  }, [checkServerConnection, fetchDataSources]);
 
   // 根据数据源类型获取分类
   const getDataSourceCategory = (type: string): string => {
@@ -369,6 +392,29 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
     setNotification({ type, message });
   };
 
+  // 刷新数据源
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      // 先检查服务器连接状态
+      const connected = await checkServerConnection();
+      if (connected) {
+        // 服务器连接正常，刷新数据源列表
+        await refreshDataSources();
+        showNotification('success', '数据源列表已刷新');
+      } else {
+        // 服务器连接失败
+        showNotification('error', '无法连接到服务器，请检查服务器状态');
+      }
+    } catch (error: any) {
+      showNotification('error', error.message || '刷新数据源失败');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // 处理测试连接
   const handleTestConnection = async (e: React.MouseEvent, id: string | number) => {
     e.preventDefault();
@@ -478,14 +524,16 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
         </div>
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => fetchDataSources()}
-            className="btn-glass-secondary flex items-center space-x-2"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="btn-glass-secondary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={isRefreshing ? "正在刷新..." : "刷新数据源列表"}
           >
-            <RefreshCw className="w-4 h-4" />
-            <span>刷新</span>
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? '刷新中...' : '刷新'}</span>
           </button>
           <button 
-            onClick={onAddDataSource}
+            onClick={handleAddDataSource}
             className="btn-glass-primary flex items-center space-x-2"
             disabled={!serverConnected}
             title={!serverConnected ? "请先确保服务器连接正常" : "添加新的数据源"}
@@ -582,11 +630,13 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                 </p>
                 <div className="flex items-center justify-center space-x-3">
                   <button 
-                    onClick={() => fetchDataSources()}
-                    className="btn-glass-secondary flex items-center space-x-2"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="btn-glass-secondary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={isRefreshing ? "正在重试..." : "重试连接"}
                   >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>重试连接</span>
+                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span>{isRefreshing ? '重试中...' : '重试连接'}</span>
                   </button>
                   <button 
                     onClick={handleAddDataSource}
