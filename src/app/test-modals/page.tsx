@@ -15,6 +15,12 @@ const TestModalsPage = () => {
     id: '1',
     name: '测试MySQL数据库',
     type: DataSourceType.MYSQL,
+    config: {
+      host: 'localhost',
+      port: 3306,
+      database: 'test_db',
+      username: 'admin',
+    },
     host: 'localhost',
     port: 3306,
     database: 'test_db',

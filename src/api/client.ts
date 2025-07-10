@@ -3,7 +3,7 @@ import { ApiResponse } from '@/types';
 
 // 创建axios实例
 const apiClient: AxiosInstance = axios.create({
-  baseURL: (process.env as any).NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9102/api',
+  baseURL: (process.env as any).NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9102/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
