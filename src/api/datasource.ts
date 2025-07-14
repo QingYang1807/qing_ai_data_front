@@ -1,4 +1,4 @@
-import { request } from './client';
+import { datasourceApiClient } from './client';
 import { 
   DataSource, 
   DataSourceCreateRequest, 
@@ -11,42 +11,42 @@ import {
 export const datasourceApi = {
   // 获取数据源列表
   getList: (params?: DataSourceQueryRequest) => 
-    request.get<PageResponse<DataSource>>('/datasources', { params }),
+    datasourceApiClient.get<PageResponse<DataSource>>('/datasources', { params }).then((res: any) => res.data),
 
   // 获取数据源详情
   getById: (id: string) => 
-    request.get<DataSource>(`/datasources/${id}`),
+    datasourceApiClient.get<DataSource>(`/datasources/${id}`).then((res: any) => res.data),
 
   // 创建数据源
   create: (data: DataSourceCreateRequest) => 
-    request.post<DataSource>('/datasources', data),
+    datasourceApiClient.post<DataSource>('/datasources', data).then((res: any) => res.data),
 
   // 更新数据源
   update: (id: string, data: DataSourceUpdateRequest) => 
-    request.put<DataSource>(`/datasources/${id}`, data),
+    datasourceApiClient.put<DataSource>(`/datasources/${id}`, data).then((res: any) => res.data),
 
   // 删除数据源
   delete: (id: string) => 
-    request.delete(`/datasources/${id}`),
+    datasourceApiClient.delete(`/datasources/${id}`).then((res: any) => res.data),
 
   // 测试数据源连接
   testConnection: (id: string) => 
-    request.post<{ success: boolean; message: string }>(`/datasources/${id}/test`),
+    datasourceApiClient.post<{ success: boolean; message: string }>(`/datasources/${id}/test`).then((res: any) => res.data),
 
   // 启用数据源
   enable: (id: string) => 
-    request.patch(`/datasources/${id}/enable`),
+    datasourceApiClient.patch(`/datasources/${id}/enable`).then((res: any) => res.data),
 
   // 禁用数据源
   disable: (id: string) => 
-    request.patch(`/datasources/${id}/disable`),
+    datasourceApiClient.patch(`/datasources/${id}/disable`).then((res: any) => res.data),
 
   // 获取数据源统计信息
   getStats: () => 
-    request.get<{
+    datasourceApiClient.get<{
       total: number;
       active: number;
       inactive: number;
       error: number;
-    }>('/datasources/stats'),
+    }>('/datasources/stats').then((res: any) => res.data),
 }; 

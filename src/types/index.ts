@@ -153,6 +153,7 @@ export interface DataSource {
   name: string;
   type: DataSourceType;
   category?: DataSourceCategory;
+  level: DataSourceLevel; // 新增：数据源分级
   config: DataSourceConfig;
   description?: string;
   status: number | string; // 0-未连接，1-连接成功，2-连接失败
@@ -170,6 +171,12 @@ export interface DataSource {
   username?: string;
   password?: string;
   connectionUrl?: string;
+  
+  // 新增字段
+  connections?: DataSourceConnection[];
+  tables?: DatabaseTable[];
+  tableCount?: number;
+  connectionCount?: number;
 }
 
 // 数据源创建DTO
@@ -199,7 +206,92 @@ export interface DataSourceQueryRequest {
   size?: number;
 }
 
-// 数据源统计VO
+// 数据源分级枚举
+export enum DataSourceLevel {
+  PUBLIC = "PUBLIC",           // 公开级 - 所有用户可访问
+  INTERNAL = "INTERNAL",       // 内部级 - 内部用户可访问
+  CONFIDENTIAL = "CONFIDENTIAL", // 机密级 - 指定用户可访问
+  SECRET = "SECRET",           // 秘密级 - 仅管理员可访问
+}
+
+// 数据源权限枚举
+export enum DataSourcePermission {
+  READ = "READ",               // 只读权限
+  WRITE = "WRITE",             // 读写权限
+  ADMIN = "ADMIN",             // 管理权限
+}
+
+// 数据库表信息
+export interface DatabaseTable {
+  id?: number;
+  dataSourceId: number;
+  tableName: string;
+  tableComment?: string;
+  tableType: 'TABLE' | 'VIEW' | 'MATERIALIZED_VIEW';
+  rowCount?: number;
+  size?: number;
+  columns?: TableColumn[];
+  createTime?: string;
+  updateTime?: string;
+}
+
+// 表字段信息
+export interface TableColumn {
+  columnName: string;
+  dataType: string;
+  columnComment?: string;
+  isNullable: boolean;
+  isPrimaryKey: boolean;
+  defaultValue?: string;
+  columnSize?: number;
+  precision?: number;
+  scale?: number;
+}
+
+// 数据源用户连接
+export interface DataSourceConnection {
+  id?: number;
+  dataSourceId: number;
+  userId: number;
+  username: string;
+  permission: DataSourcePermission;
+  isActive: boolean;
+  lastConnectTime?: string;
+  connectCount: number;
+  createTime?: string;
+  updateTime?: string;
+}
+
+// 数据源连接历史
+export interface ConnectionHistory {
+  id?: number;
+  dataSourceId: number;
+  userId: number;
+  username: string;
+  action: 'CONNECT' | 'DISCONNECT' | 'QUERY' | 'ERROR';
+  status: 'SUCCESS' | 'FAILED';
+  message?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createTime: string;
+}
+
+// 数据源表管理
+export interface TableManagement {
+  id?: number;
+  dataSourceId: number;
+  tableName: string;
+  isEnabled: boolean;
+  syncEnabled: boolean;
+  lastSyncTime?: string;
+  syncInterval?: number; // 同步间隔（分钟）
+  description?: string;
+  tags?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+// 数据源统计扩展
 export interface DataSourceStatsVO {
   totalCount: number;
   enabledCount: number;
@@ -207,6 +299,17 @@ export interface DataSourceStatsVO {
   errorCount: number;
   byCategory: Record<DataSourceCategory, number>;
   byType: Record<DataSourceType, number>;
+  byLevel: Record<DataSourceLevel, number>;
+  connectionStats: {
+    totalConnections: number;
+    activeConnections: number;
+    todayConnections: number;
+  };
+  tableStats: {
+    totalTables: number;
+    enabledTables: number;
+    syncedTables: number;
+  };
 }
 
 // 数据类型枚举
@@ -282,33 +385,19 @@ export interface DatasetFile {
   id?: number;
   datasetId: number;
   fileName: string;
-  originalName?: string;
-  objectPath?: string;
-  bucketName?: string;
+  originalName: string;
+  objectPath: string;
+  bucketName: string;
   contentType?: string;
-  fileSize?: number;
-  fileHash?: string;
-  status?: FileStatus;
-  tags?: string;
-  metadata?: string;
-  annotation?: string;
-  thumbnailPath?: string;
+  fileSize: number;
+  fileHash: string;
+  status: FileStatus;
   previewUrl?: string;
-  downloadCount?: number;
-  lastAccessTime?: string;
   createTime?: string;
   updateTime?: string;
-  deleted?: boolean;
 }
 
-// 数据集统计信息
-export interface DatasetStatistics {
-  total: number;
-  ready: number;
-  creating: number;
-  processing: number;
-  error: number;
-}
+
 
 // 文件统计信息
 export interface FileStatistics {

@@ -29,9 +29,12 @@ import {
   Info
 } from 'lucide-react';
 import { useDataSourceStore } from '@/stores/useDataSourceStore';
-import { DataSource, DataSourceType } from '@/types';
+import { DataSource, DataSourceType, DataSourceLevel } from '@/types';
 import DataSourceSettings from './DataSourceSettings';
 import DataSourceForm from './DataSourceForm';
+import DataSourceConnections from './DataSourceConnections';
+import DataSourceTables from './DataSourceTables';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 // 数据源类型映射
 const dataSourceTypes = [
@@ -198,6 +201,25 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   onAddDataSource, 
   onEditDataSource 
 }) => {
+  // 新增状态
+  const [showConnections, setShowConnections] = useState(false);
+  const [showTables, setShowTables] = useState(false);
+  const [selectedDataSource, setSelectedDataSource] = useState<DataSource | null>(null);
+  
+  // 确认对话框状态
+  const [confirmDialog, setConfirmDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info' | 'success';
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'danger',
+    onConfirm: () => {}
+  });
   const { 
     dataSources, 
     loading, 
@@ -239,7 +261,6 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   } | null>(null);
 
   // 详情弹窗状态
-  const [selectedDataSource, setSelectedDataSource] = useState<DataSource | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
@@ -284,14 +305,21 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   });
 
   const handleDelete = async (id: string | number) => {
-    if (!confirm('确定要删除这个数据源吗？此操作不可恢复。')) return;
-    
-    try {
-      await deleteDataSource(String(id));
-      showNotification('success', '数据源删除成功');
-    } catch (error: any) {
-      showNotification('error', error.message || '删除数据源失败');
-    }
+    setConfirmDialog({
+      visible: true,
+      title: '删除数据源',
+      message: '确定要删除这个数据源吗？此操作不可恢复。',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteDataSource(String(id));
+          showNotification('success', '数据源删除成功');
+        } catch (error: any) {
+          showNotification('error', error.message || '删除数据源失败');
+        }
+        setConfirmDialog(prev => ({ ...prev, visible: false }));
+      }
+    });
   };
 
   const handleSettings = (dataSource: DataSource) => {
@@ -387,6 +415,38 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
     }
   };
 
+  // 获取分级颜色
+  const getLevelColor = (level: DataSourceLevel) => {
+    switch (level) {
+      case DataSourceLevel.PUBLIC:
+        return 'bg-green-500/10 text-green-700 border-green-200';
+      case DataSourceLevel.INTERNAL:
+        return 'bg-blue-500/10 text-blue-700 border-blue-200';
+      case DataSourceLevel.CONFIDENTIAL:
+        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
+      case DataSourceLevel.SECRET:
+        return 'bg-red-500/10 text-red-700 border-red-200';
+      default:
+        return 'bg-gray-500/10 text-gray-700 border-gray-200';
+    }
+  };
+
+  // 获取分级文本
+  const getLevelText = (level: DataSourceLevel) => {
+    switch (level) {
+      case DataSourceLevel.PUBLIC:
+        return '公开级';
+      case DataSourceLevel.INTERNAL:
+        return '内部级';
+      case DataSourceLevel.CONFIDENTIAL:
+        return '机密级';
+      case DataSourceLevel.SECRET:
+        return '秘密级';
+      default:
+        return '未知';
+    }
+  };
+
   // 显示通知
   const showNotification = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
     setNotification({ type, message });
@@ -466,6 +526,18 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   const handleViewDetail = (dataSource: DataSource) => {
     setSelectedDataSource(dataSource);
     setShowDetailModal(true);
+  };
+
+  // 处理连接管理
+  const handleConnections = (dataSource: DataSource) => {
+    setSelectedDataSource(dataSource);
+    setShowConnections(true);
+  };
+
+  // 处理表管理
+  const handleTables = (dataSource: DataSource) => {
+    setSelectedDataSource(dataSource);
+    setShowTables(true);
   };
 
   // 分页计算
@@ -719,6 +791,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                   <tr className="border-b border-glass-200 bg-glass-100">
                     <th className="text-left py-4 px-6 font-medium text-gray-700">名称</th>
                     <th className="text-left py-4 px-6 font-medium text-gray-700">类型</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">分级</th>
                     <th className="text-left py-4 px-6 font-medium text-gray-700">状态</th>
                     <th className="text-left py-4 px-6 font-medium text-gray-700">启用状态</th>
                     <th className="text-left py-4 px-6 font-medium text-gray-700">最后连接</th>
@@ -743,6 +816,11 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getTypeColor(ds.type)}`}>
                           {ds.type.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getLevelColor(ds.level || DataSourceLevel.INTERNAL)}`}>
+                          {getLevelText(ds.level || DataSourceLevel.INTERNAL)}
                         </span>
                       </td>
                       <td className="py-4 px-6">
@@ -776,6 +854,20 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                             title="查看详情"
                           >
                             <Eye className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={(e) => handleConnections(ds)}
+                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors duration-200"
+                            title="连接管理"
+                          >
+                            <User className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={(e) => handleTables(ds)}
+                            className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors duration-200"
+                            title="表管理"
+                          >
+                            <Database className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={(e) => handleTestConnection(e, ds.id)}
@@ -944,6 +1036,14 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                     <label className="text-sm font-medium text-gray-600">数据源类型</label>
                     <p className="text-gray-900 mt-1">{selectedDataSource.type.toUpperCase()}</p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-600">数据源分级</label>
+                    <p className="text-gray-900 mt-1">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getLevelColor(selectedDataSource.level || DataSourceLevel.INTERNAL)}`}>
+                        {getLevelText(selectedDataSource.level || DataSourceLevel.INTERNAL)}
+                      </span>
+                    </p>
+                  </div>
                   <div className="col-span-2">
                     <label className="text-sm font-medium text-gray-600">描述</label>
                     <p className="text-gray-900 mt-1">{selectedDataSource.description || '暂无描述'}</p>
@@ -1062,6 +1162,40 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
           </div>
         </div>
       )}
+
+      {/* 连接管理模态框 */}
+      {selectedDataSource && (
+        <DataSourceConnections
+          dataSourceId={Number(selectedDataSource.id)}
+          visible={showConnections}
+          onClose={() => {
+            setShowConnections(false);
+            setSelectedDataSource(null);
+          }}
+        />
+      )}
+
+      {/* 表管理模态框 */}
+      {selectedDataSource && (
+        <DataSourceTables
+          dataSourceId={Number(selectedDataSource.id)}
+          visible={showTables}
+          onClose={() => {
+            setShowTables(false);
+            setSelectedDataSource(null);
+          }}
+        />
+      )}
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        visible={confirmDialog.visible}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(prev => ({ ...prev, visible: false }))}
+      />
     </div>
   );
 };

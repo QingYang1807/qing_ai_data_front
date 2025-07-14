@@ -1,5 +1,14 @@
-import apiClient from './client';
-import { Dataset, DatasetFile, DatasetStatistics } from '../types';
+import { datasetApiClient } from './client';
+import { Dataset, DatasetFile } from '../types';
+
+// 数据集统计信息类型
+interface DatasetStatistics {
+  total: number;
+  ready: number;
+  creating: number;
+  processing: number;
+  error: number;
+}
 
 // API响应类型
 interface ApiResponse<T> {
@@ -31,8 +40,9 @@ export const datasetApi = {
     keyword?: string;
     type?: string;
     status?: string;
+    permission?: string;
   } = {}): Promise<PageResponse<Dataset>> {
-    const { data } = await apiClient.get('/datasets', { params });
+    const { data } = await datasetApiClient.get('/datasets', { params });
     return data;
   },
 
@@ -40,7 +50,7 @@ export const datasetApi = {
    * 根据ID获取数据集详情
    */
   async GetDataset(id: number): Promise<ApiResponse<Dataset>> {
-    const { data } = await apiClient.get(`/datasets/${id}`);
+    const { data } = await datasetApiClient.get(`/datasets/${id}`);
     return data;
   },
 
@@ -48,7 +58,7 @@ export const datasetApi = {
    * 创建数据集
    */
   async CreateDataset(dataset: Omit<Dataset, 'id' | 'createTime' | 'updateTime'>): Promise<ApiResponse<Dataset>> {
-    const { data } = await apiClient.post('/datasets', dataset);
+    const { data } = await datasetApiClient.post('/datasets', dataset);
     return data;
   },
 
@@ -56,7 +66,7 @@ export const datasetApi = {
    * 更新数据集
    */
   async UpdateDataset(id: number, dataset: Partial<Dataset>): Promise<ApiResponse<Dataset>> {
-    const { data } = await apiClient.put(`/datasets/${id}`, dataset);
+    const { data } = await datasetApiClient.put(`/datasets/${id}`, dataset);
     return data;
   },
 
@@ -64,7 +74,7 @@ export const datasetApi = {
    * 删除数据集
    */
   async DeleteDataset(id: number): Promise<ApiResponse<void>> {
-    const { data } = await apiClient.delete(`/datasets/${id}`);
+    const { data } = await datasetApiClient.delete(`/datasets/${id}`);
     return data;
   },
 
@@ -78,7 +88,7 @@ export const datasetApi = {
       formData.append('creator', creator);
     }
 
-    const { data } = await apiClient.post(`/datasets/${datasetId}/files`, formData, {
+    const { data } = await datasetApiClient.post(`/datasets/${datasetId}/files`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -93,7 +103,7 @@ export const datasetApi = {
     page?: number;
     size?: number;
   } = {}): Promise<PageResponse<DatasetFile>> {
-    const { data } = await apiClient.get(`/datasets/${datasetId}/files`, { params });
+    const { data } = await datasetApiClient.get(`/datasets/${datasetId}/files`, { params });
     return data;
   },
 
@@ -101,7 +111,15 @@ export const datasetApi = {
    * 获取文件下载链接
    */
   async GetFileDownloadUrl(fileId: number): Promise<ApiResponse<{ downloadUrl: string }>> {
-    const { data } = await apiClient.get(`/datasets/files/${fileId}/download`);
+    const { data } = await datasetApiClient.get(`/datasets/files/${fileId}/download`);
+    return data;
+  },
+
+  /**
+   * 删除文件
+   */
+  async DeleteFile(fileId: number): Promise<ApiResponse<void>> {
+    const { data } = await datasetApiClient.delete(`/datasets/files/${fileId}`);
     return data;
   },
 
@@ -109,7 +127,7 @@ export const datasetApi = {
    * 根据类型获取数据集
    */
   async GetDatasetsByType(type: string): Promise<ApiResponse<Dataset[]>> {
-    const { data } = await apiClient.get(`/datasets/type/${type}`);
+    const { data } = await datasetApiClient.get(`/datasets/type/${type}`);
     return data;
   },
 
@@ -117,7 +135,7 @@ export const datasetApi = {
    * 获取数据集统计信息
    */
   async GetDatasetStatistics(): Promise<ApiResponse<DatasetStatistics>> {
-    const { data } = await apiClient.get('/datasets/statistics');
+    const { data } = await datasetApiClient.get('/datasets/statistics');
     return data;
   },
 
@@ -128,7 +146,7 @@ export const datasetApi = {
     page?: number;
     size?: number;
   } = {}): Promise<PageResponse<Dataset>> {
-    const { data } = await apiClient.get('/datasets', { 
+    const { data } = await datasetApiClient.get('/datasets', { 
       params: { ...params, keyword } 
     });
     return data;

@@ -1,10 +1,11 @@
-declare namespace NodeJS {
-  interface ProcessEnv {
-    NEXT_PUBLIC_API_BASE_URL: string;
-    NODE_ENV: 'development' | 'production' | 'test';
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      NEXT_PUBLIC_API_BASE_URL: string;
+      NEXT_PUBLIC_DATASOURCE_API_URL: string;
+      NEXT_PUBLIC_DATASET_API_URL: string;
+    }
   }
 }
 
-declare const process: {
-  env: NodeJS.ProcessEnv;
-}; 
+export {}; 

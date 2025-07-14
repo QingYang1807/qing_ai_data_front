@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import Dashboard from '@/components/dashboard/Dashboard';
 import DataSourceList from '@/components/datasource/DataSourceList';
+import DatasetList from '@/components/dataset/DatasetList';
 
 // 模拟用户数据
 const mockUser = {
@@ -60,14 +61,7 @@ export default function Home() {
       case 'datasource':
         return <DataSourceList />;
       case 'dataset':
-        return (
-          <div className="p-6 max-w-7xl mx-auto">
-            <div className="glass-card p-12 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">数据集管理</h2>
-              <p className="text-gray-600">数据集管理功能正在开发中...</p>
-            </div>
-          </div>
-        );
+        return <DatasetList />;
       case 'processing':
         return (
           <div className="p-6 max-w-7xl mx-auto">

@@ -20,7 +20,7 @@ import {
   Server,
   HardDrive
 } from 'lucide-react';
-import { DataSourceType, DataSource, DataSourceCreateRequest, DataSourceConfig } from '@/types';
+import { DataSourceType, DataSource, DataSourceCreateRequest, DataSourceConfig, DataSourceLevel } from '@/types';
 import { useDataSourceStore } from '@/stores/useDataSourceStore';
 
 interface DataSourceFormProps {
@@ -110,6 +110,7 @@ export default function DataSourceForm({
   const [formData, setFormData] = useState({
     name: '',
     type: DataSourceType.MYSQL,
+    level: DataSourceLevel.INTERNAL,
     host: '',
     port: 3306,
     database: '',
@@ -153,6 +154,7 @@ export default function DataSourceForm({
         setFormData({
           name: editingDataSource.name || '',
           type: editingDataSource.type || DataSourceType.MYSQL,
+          level: editingDataSource.level || DataSourceLevel.INTERNAL,
           host: config.host || editingDataSource.host || '',
           port: config.port || editingDataSource.port || getDefaultPort(editingDataSource.type || DataSourceType.MYSQL),
           database: config.database || editingDataSource.database || '',
@@ -167,6 +169,7 @@ export default function DataSourceForm({
         setFormData({
           name: '',
           type: DataSourceType.MYSQL,
+          level: DataSourceLevel.INTERNAL,
           host: '',
           port: 3306,
           database: '',
@@ -187,15 +190,38 @@ export default function DataSourceForm({
 
   // 获取默认端口
   const getDefaultPort = (type: DataSourceType): number => {
-    const portMap = {
+    const portMap: Record<DataSourceType, number> = {
       [DataSourceType.MYSQL]: 3306,
       [DataSourceType.POSTGRESQL]: 5432,
       [DataSourceType.ORACLE]: 1521,
+      [DataSourceType.SQLSERVER]: 1433,
+      [DataSourceType.SQLITE]: 0,
       [DataSourceType.HIVE]: 10000,
+      [DataSourceType.HDFS]: 9000,
+      [DataSourceType.CLICKHOUSE]: 9000,
+      [DataSourceType.MONGODB]: 27017,
+      [DataSourceType.REDIS]: 6379,
+      [DataSourceType.CASSANDRA]: 9042,
+      [DataSourceType.ELASTICSEARCH]: 9200,
+      [DataSourceType.KAFKA]: 9092,
+      [DataSourceType.RABBITMQ]: 5672,
+      [DataSourceType.ROCKETMQ]: 9876,
+      [DataSourceType.PULSAR]: 6650,
       [DataSourceType.FTP]: 21,
       [DataSourceType.SFTP]: 22,
-      [DataSourceType.KAFKA]: 9092,
-      [DataSourceType.HDFS]: 9000,
+      [DataSourceType.S3]: 443,
+      [DataSourceType.OSS]: 443,
+      [DataSourceType.MINIO]: 9000,
+      [DataSourceType.AMAZON_RDS]: 3306,
+      [DataSourceType.ALIYUN_RDS]: 3306,
+      [DataSourceType.TENCENT_CDB]: 3306,
+      [DataSourceType.REST_API]: 443,
+      [DataSourceType.GRAPHQL]: 443,
+      [DataSourceType.SOAP]: 443,
+      [DataSourceType.CSV]: 0,
+      [DataSourceType.EXCEL]: 0,
+      [DataSourceType.JSON]: 0,
+      [DataSourceType.XML]: 0,
     };
     return portMap[type] || 3306;
   };
@@ -487,6 +513,7 @@ export default function DataSourceForm({
       setFormData({
         name: editingDataSource.name || '',
         type: editingDataSource.type || DataSourceType.MYSQL,
+        level: editingDataSource.level || DataSourceLevel.INTERNAL,
         host: config.host || editingDataSource.host || '',
         port: config.port || editingDataSource.port || getDefaultPort(editingDataSource.type || DataSourceType.MYSQL),
         database: config.database || editingDataSource.database || '',
@@ -500,6 +527,7 @@ export default function DataSourceForm({
       setFormData({
         name: '',
         type: DataSourceType.MYSQL,
+        level: DataSourceLevel.INTERNAL,
         host: '',
         port: 3306,
         database: '',
@@ -688,6 +716,70 @@ export default function DataSourceForm({
                     <p className="text-xs text-gray-500 mt-1">
                       {formData.description.length}/200
                     </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      数据源分级 <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="level"
+                          value={DataSourceLevel.PUBLIC}
+                          checked={formData.level === DataSourceLevel.PUBLIC}
+                          onChange={(e) => handleInputChange('level', e.target.value as DataSourceLevel)}
+                          className="mr-3"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900">公开级</div>
+                          <div className="text-sm text-gray-600">所有用户可访问</div>
+                        </div>
+                      </label>
+                      <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="level"
+                          value={DataSourceLevel.INTERNAL}
+                          checked={formData.level === DataSourceLevel.INTERNAL}
+                          onChange={(e) => handleInputChange('level', e.target.value as DataSourceLevel)}
+                          className="mr-3"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900">内部级</div>
+                          <div className="text-sm text-gray-600">内部用户可访问</div>
+                        </div>
+                      </label>
+                      <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="level"
+                          value={DataSourceLevel.CONFIDENTIAL}
+                          checked={formData.level === DataSourceLevel.CONFIDENTIAL}
+                          onChange={(e) => handleInputChange('level', e.target.value as DataSourceLevel)}
+                          className="mr-3"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900">机密级</div>
+                          <div className="text-sm text-gray-600">指定用户可访问</div>
+                        </div>
+                      </label>
+                      <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                        <input
+                          type="radio"
+                          name="level"
+                          value={DataSourceLevel.SECRET}
+                          checked={formData.level === DataSourceLevel.SECRET}
+                          onChange={(e) => handleInputChange('level', e.target.value as DataSourceLevel)}
+                          className="mr-3"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900">秘密级</div>
+                          <div className="text-sm text-gray-600">仅管理员可访问</div>
+                        </div>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
