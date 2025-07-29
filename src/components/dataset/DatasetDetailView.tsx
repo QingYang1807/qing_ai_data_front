@@ -24,6 +24,8 @@ import {
 import { Dataset, DatasetType } from '@/types';
 import DatasetFiles from '@/components/dataset/DatasetFiles';
 import { datasetApi } from '@/api/dataset';
+import { ToastContainer } from '@/components/common/Toast';
+import { useToast } from '@/hooks/useToast';
 
 interface DatasetDetailViewProps {
   dataset: Dataset;
@@ -43,6 +45,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
+  const { toasts, showSuccess, showError, removeToast } = useToast();
 
   // 数据集类型配置
   const datasetTypeConfig = {
@@ -136,7 +139,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
       console.log('数据集下载成功:', dataset.name, '文件名:', safeFileName);
       
       // 显示成功提示
-      alert(`数据集"${dataset.name}"下载成功！\n文件名: ${safeFileName}`);
+      showSuccess('下载成功', `数据集"${dataset.name}"下载成功！\n文件名: ${safeFileName}`);
     } catch (error: any) {
       console.error('下载数据集失败:', error);
       console.error('错误详情:', {
@@ -167,7 +170,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
         errorMessage = error.message;
       }
       
-      alert(`下载失败: ${errorMessage}`);
+      showError('下载失败', errorMessage);
     } finally {
       setDownloadLoading(false);
     }
@@ -185,6 +188,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
 
   return (
     <div className="space-y-6">
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       {/* 页面头部 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">

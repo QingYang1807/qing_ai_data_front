@@ -3,17 +3,21 @@
 import React, { useState } from 'react';
 import { Download, Eye, FileText, Loader2 } from 'lucide-react';
 import { datasetApi } from '@/api/dataset';
+import { ToastContainer } from '@/components/common/Toast';
+import { useToast } from '@/hooks/useToast';
 
 export default function TestDatasetDownload() {
   const [datasetId, setDatasetId] = useState<string>('1');
   const [loading, setLoading] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
+  
+  const { toasts, showSuccess, showError, showWarning, removeToast } = useToast();
 
   // 测试下载功能
   const handleTestDownload = async () => {
     if (!datasetId) {
-      alert('请输入数据集ID');
+      showWarning('输入错误', '请输入数据集ID');
       return;
     }
 
@@ -46,7 +50,7 @@ export default function TestDatasetDownload() {
       }, 100);
       
       console.log('数据集下载成功');
-      alert('数据集下载成功！请检查下载目录。');
+      showSuccess('下载成功', '数据集下载成功！请检查下载目录。');
     } catch (error: any) {
       console.error('下载数据集失败:', error);
       console.error('错误详情:', {
@@ -73,13 +77,13 @@ export default function TestDatasetDownload() {
           case 500:
             errorMessage = '服务器内部错误';
             if (responseData && typeof responseData === 'string') {
-              errorMessage += `: ${responseData}`;
+              errorMessage += `\n${responseData}`;
             }
             break;
           default:
             errorMessage = `HTTP ${status} 错误`;
             if (responseData && responseData.message) {
-              errorMessage += `: ${responseData.message}`;
+              errorMessage += `\n${responseData.message}`;
             }
         }
       } else if (error.code === 'ECONNREFUSED') {
@@ -88,7 +92,7 @@ export default function TestDatasetDownload() {
         errorMessage = error.message;
       }
       
-      alert(`下载失败: ${errorMessage}\n\n请查看浏览器控制台获取详细错误信息。`);
+      showError('下载失败', `${errorMessage}\n\n请查看浏览器控制台获取详细错误信息。`, 6000);
     } finally {
       setLoading(false);
     }
@@ -97,7 +101,7 @@ export default function TestDatasetDownload() {
   // 测试预览功能
   const handleTestPreview = async () => {
     if (!datasetId) {
-      alert('请输入数据集ID');
+      showWarning('输入错误', '请输入数据集ID');
       return;
     }
 
@@ -109,10 +113,10 @@ export default function TestDatasetDownload() {
       setPreviewData(response.data);
       
       console.log('预览数据:', response.data);
-      alert('预览数据获取成功，请查看控制台输出');
+      showSuccess('预览成功', '预览数据获取成功，请查看下方显示内容');
     } catch (error: any) {
       console.error('获取预览数据失败:', error);
-      alert(`预览失败: ${error.message || error.response?.data?.message || '请稍后重试'}`);
+      showError('预览失败', error.message || error.response?.data?.message || '请稍后重试');
       setPreviewData(null);
     } finally {
       setPreviewLoading(false);
@@ -121,6 +125,8 @@ export default function TestDatasetDownload() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+      
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">

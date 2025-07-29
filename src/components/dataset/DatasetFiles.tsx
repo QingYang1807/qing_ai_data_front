@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useDatasetStore } from '@/stores/useDatasetStore';
 import { Dataset, DatasetFile, FileStatus } from '@/types';
+import { ToastContainer } from '@/components/common/Toast';
+import { useToast } from '@/hooks/useToast';
 
 interface DatasetFilesProps {
   dataset: Dataset;
@@ -28,6 +30,7 @@ interface DatasetFilesProps {
 export default function DatasetFiles({ dataset }: DatasetFilesProps) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
+  const { toasts, showError, removeToast } = useToast();
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
 
   // 从store获取文件状态
@@ -158,6 +161,7 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
 
   return (
     <div className="space-y-6">
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       {/* 工具栏 */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
@@ -420,6 +424,7 @@ function FileUploadModal({
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const { showError } = useToast();
 
   const HandleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -441,7 +446,7 @@ function FileUploadModal({
       onSuccess();
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('文件上传失败，请重试');
+      showError('上传失败', '文件上传失败，请重试');
     } finally {
       setUploading(false);
     }

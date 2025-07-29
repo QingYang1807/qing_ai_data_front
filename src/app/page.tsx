@@ -9,6 +9,8 @@ import DatasetList from '@/components/dataset/DatasetList';
 import DatasetForm from '@/components/dataset/DatasetForm';
 import DatasetDetailView from '@/components/dataset/DatasetDetailView';
 import { Dataset } from '@/types';
+import { ToastContainer } from '@/components/common/Toast';
+import { useToast } from '@/hooks/useToast';
 
 // 模拟用户数据
 const mockUser = {
@@ -53,6 +55,7 @@ export default function Home() {
   const [editingDataset, setEditingDataset] = useState<Dataset | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // 刷新触发器
   const [viewingDataset, setViewingDataset] = useState<Dataset | null>(null); // 当前查看的数据集
+  const { toasts, showSuccess, removeToast } = useToast();
 
   const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
@@ -112,7 +115,7 @@ export default function Home() {
     });
     
     // 显示成功通知
-    alert(`数据集操作成功！\n名称: ${dataset.name}\n类型: ${dataset.type}\n正在刷新列表...`);
+    showSuccess('数据集操作成功', `名称: ${dataset.name}\n类型: ${dataset.type}\n正在刷新列表...`);
   };
 
   const renderActiveTab = () => {
@@ -228,6 +231,7 @@ export default function Home() {
 
   return (
     <div className="h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col fixed inset-0">
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       {/* Header - Fixed at top */}
       <Header
         user={mockUser}
