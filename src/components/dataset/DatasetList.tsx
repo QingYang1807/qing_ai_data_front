@@ -35,7 +35,8 @@ import {
   HardDrive,
   Upload,
   Download,
-  FolderOpen
+  ExternalLink,
+
 } from 'lucide-react';
 import { Dataset, DatasetType, DatasetStatus, DatasetPermission } from '@/types';
 import { datasetApi } from '@/api/dataset';
@@ -230,9 +231,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
     message: string;
   } | null>(null);
 
-  // 数据集详情弹窗状态
-  const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+
 
   // 数据集类型图标配置
   const datasetTypeConfig = {
@@ -244,10 +243,12 @@ const DatasetList: React.FC<DatasetListProps> = ({
   };
 
   useEffect(() => {
+    console.log('DatasetList component mounted/remounted, fetching datasets...');
     fetchDatasets();
   }, [currentPage, searchTerm, selectedType, selectedStatus, selectedPermission]);
 
   const fetchDatasets = async () => {
+    console.log('fetchDatasets called');
     setLoading(true);
     setError(null);
     try {
@@ -269,10 +270,13 @@ const DatasetList: React.FC<DatasetListProps> = ({
         params.permission = selectedPermission;
       }
 
+      console.log('Fetching datasets with params:', params);
       const response = await datasetApi.GetDatasets(params);
+      console.log('API response:', response);
       setDatasets(response.data || []);
       setTotal(response.total || 0);
     } catch (error: any) {
+      console.error('Error fetching datasets:', error);
       setError(error.message || '获取数据集列表失败');
       showNotification('error', error.message || '获取数据集列表失败');
     } finally {
@@ -313,12 +317,16 @@ const DatasetList: React.FC<DatasetListProps> = ({
     });
   };
 
-  const handleViewDetail = (dataset: Dataset) => {
-    if (onViewDataset) {
+  const handleViewDetail = (dataset: Dataset, openInNewTab: boolean = false) => {
+    if (openInNewTab) {
+      // 强制在新标签页打开
+      window.open(`/dataset/${dataset.id}`, '_blank');
+    } else if (onViewDataset) {
+      // 使用回调函数（框架内显示或当前页面跳转）
       onViewDataset(dataset);
     } else {
-      setSelectedDataset(dataset);
-      setShowDetailModal(true);
+      // 默认行为：如果没有回调，在当前页面跳转到独立页面
+      window.location.href = `/dataset/${dataset.id}`;
     }
   };
 
@@ -589,14 +597,27 @@ const DatasetList: React.FC<DatasetListProps> = ({
                   <div
                     key={dataset.id}
                     className="glass-card hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                    onClick={() => handleViewDetail(dataset)}
+                    onClick={() => handleViewDetail(dataset, false)}
                   >
                     <div className="p-6">
                       {/* Dataset Type Icon */}
                       <div className="flex items-center justify-between mb-4">
                         <TypeIcon className={`w-8 h-8 ${typeConfig?.color || 'text-gray-600'}`} />
-                        <div className="flex items-center space-x-1">
-                          {getStatusIcon(dataset.status || 'CREATING')}
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewDetail(dataset, true);
+                            }}
+                            className="flex items-center space-x-1 px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-full transition-all duration-200 opacity-0 group-hover:opacity-100"
+                            title="在新标签页打开"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>新窗口</span>
+                          </button>
+                          <div className="flex items-center space-x-1">
+                            {getStatusIcon(dataset.status || 'CREATING')}
+                          </div>
                         </div>
                       </div>
 
@@ -641,12 +662,22 @@ const DatasetList: React.FC<DatasetListProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleViewDetail(dataset);
+                              handleViewDetail(dataset, false);
                             }}
                             className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="查看详情"
+                            title="在当前页面查看详情"
                           >
                             <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewDetail(dataset, true);
+                            }}
+                            className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                            title="在新标签页打开"
+                          >
+                            <ExternalLink className="w-4 h-4" />
                           </button>
                           <button
                             onClick={(e) => {
@@ -736,159 +767,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
         )}
       </div>
 
-      {/* 数据集详情弹窗 */}
-      {showDetailModal && selectedDataset && (
-        <div 
-          className="modal-overlay animate-fade-in"
-          onClick={(e) => {
-            e.preventDefault();
-            setShowDetailModal(false);
-          }}
-        >
-          <div 
-            className="glass-card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-                <Database className="w-6 h-6 text-blue-600" />
-                <span>数据集详情</span>
-              </h3>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowDetailModal(false);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
 
-            <div className="p-6 space-y-6">
-              {/* 基本信息 */}
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">基本信息</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">数据集名称</label>
-                    <p className="text-gray-900 mt-1">{selectedDataset.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">数据集类型</label>
-                    <p className="text-gray-900 mt-1">{datasetTypeConfig[selectedDataset.type as DatasetType]?.name || selectedDataset.type}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-600">描述</label>
-                    <p className="text-gray-900 mt-1">{selectedDataset.description || '暂无描述'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 统计信息 */}
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">统计信息</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">文件数量</label>
-                    <p className="text-gray-900 mt-1">{selectedDataset.fileCount || 0} 个</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">数据大小</label>
-                    <p className="text-gray-900 mt-1">{formatFileSize(selectedDataset.size || 0)}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">格式</label>
-                    <p className="text-gray-900 mt-1">{selectedDataset.format || '未指定'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">版本</label>
-                    <p className="text-gray-900 mt-1">{selectedDataset.version || 'v1.0'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 状态信息 */}
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">状态信息</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">当前状态</label>
-                    <div className="flex items-center space-x-2 mt-1">
-                      {getStatusIcon(selectedDataset.status || 'CREATING')}
-                      <span>{getStatusText(selectedDataset.status || 'CREATING')}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">权限类型</label>
-                    <p className="text-gray-900 mt-1">
-                      {selectedDataset.permission === 'PRIVATE' ? '私有' : 
-                       selectedDataset.permission === 'PUBLIC' ? '公开' : '团队'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">创建时间</label>
-                    <p className="text-gray-900 mt-1">
-                      {selectedDataset.createTime 
-                        ? new Date(selectedDataset.createTime).toLocaleString() 
-                        : '未知'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-600">更新时间</label>
-                    <p className="text-gray-900 mt-1">
-                      {selectedDataset.updateTime 
-                        ? new Date(selectedDataset.updateTime).toLocaleString() 
-                        : '未知'
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 操作按钮 */}
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowDetailModal(false);
-                    window.open(`/dataset/${selectedDataset.id}`, '_blank');
-                  }}
-                  className="btn-glass flex items-center space-x-2 bg-green-500/20 hover:bg-green-500/30 border-green-300/30 text-green-700"
-                >
-                  <FolderOpen className="w-4 h-4" />
-                  <span>打开数据集</span>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowDetailModal(false);
-                    onEditDataset?.(selectedDataset);
-                  }}
-                  className="btn-glass-primary flex items-center space-x-2"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span>编辑</span>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowDetailModal(false);
-                  }}
-                  className="btn-glass-secondary"
-                >
-                  关闭
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 确认对话框 */}
       <ConfirmDialog

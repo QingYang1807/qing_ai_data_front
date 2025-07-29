@@ -145,6 +145,23 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
     setErrors({});
   }, [editingDataset, visible]);
 
+  // ESC键关闭功能
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && visible) {
+        onCancel();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [visible, onCancel]);
+
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
@@ -190,6 +207,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
 
       let result: any;
       if (isEditing) {
+        console.log('Updating dataset:', editingDataset!.id, datasetData);
         result = await datasetApi.UpdateDataset(editingDataset!.id!, datasetData);
       } else {
         // 创建数据集时，确保必需字段都有值
@@ -202,12 +220,16 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
           isPublic: formData.isPublic,
           tags: formData.tags.trim() || undefined,
         };
+        console.log('Creating dataset:', createData);
         result = await datasetApi.CreateDataset(createData);
       }
 
+      console.log('API result:', result);
+      console.log('Calling onSuccess with:', result.data);
       onSuccess?.(result.data);
       onCancel();
     } catch (error: any) {
+      console.error('Dataset operation failed:', error);
       setErrors({ 
         submit: error.message || `${isEditing ? '更新' : '创建'}数据集失败` 
       });

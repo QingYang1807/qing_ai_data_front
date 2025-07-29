@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   AlertTriangle, 
   Trash2, 
@@ -33,6 +33,23 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onCancel,
   loading = false
 }) => {
+  // ESC键关闭功能
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && visible) {
+        onCancel();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [visible, onCancel]);
+
   if (!visible) return null;
 
   const getTypeStyles = () => {

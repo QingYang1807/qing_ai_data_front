@@ -31,7 +31,7 @@ interface DatasetStore {
   checkServerConnection: () => Promise<boolean>;
   
   // 数据集CRUD操作
-  createDataset: (dataset: Partial<Dataset>) => Promise<Dataset>;
+  createDataset: (dataset: Omit<Dataset, 'id' | 'createTime' | 'updateTime'>) => Promise<Dataset>;
   updateDataset: (id: number, dataset: Partial<Dataset>) => Promise<Dataset>;
   deleteDataset: (id: number) => Promise<void>;
   getDataset: (id: number) => Promise<Dataset>;
@@ -117,17 +117,15 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
     }
   },
 
-  createDataset: async (datasetData: Partial<Dataset>) => {
+  createDataset: async (datasetData: Omit<Dataset, 'id' | 'createTime' | 'updateTime'>) => {
     set({ operationLoading: true, error: null });
     
     try {
       const response = await datasetApi.CreateDataset(datasetData);
-      
       // 刷新数据集列表
       await get().refreshDatasets();
-      
       set({ operationLoading: false });
-      return response;
+      return response.data; // 只返回 Dataset 类型
     } catch (error: any) {
       set({ 
         error: error.message || '创建数据集失败',
@@ -139,25 +137,21 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
 
   updateDataset: async (id: number, datasetData: Partial<Dataset>) => {
     set({ operationLoading: true, error: null });
-    
     try {
       const response = await datasetApi.UpdateDataset(id, datasetData);
-      
       // 更新当前数据集（如果正在查看）
       const { currentDataset } = get();
       if (currentDataset && currentDataset.id === id) {
-        set({ currentDataset: response });
+        set({ currentDataset: response.data });
       }
-      
       // 更新列表中的数据集
       set(state => ({
         datasets: state.datasets.map(ds => 
-          ds.id === id ? { ...ds, ...response } : ds
+          ds.id === id ? { ...ds, ...response.data } : ds
         ),
         operationLoading: false
       }));
-      
-      return response;
+      return response.data;
     } catch (error: any) {
       set({ 
         error: error.message || '更新数据集失败',
@@ -196,14 +190,13 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
 
   getDataset: async (id: number) => {
     set({ loading: true, error: null });
-    
     try {
       const response = await datasetApi.GetDataset(id);
       set({ 
-        currentDataset: response,
+        currentDataset: response.data,
         loading: false 
       });
-      return response;
+      return response.data;
     } catch (error: any) {
       set({ 
         error: error.message || '获取数据集详情失败',
@@ -242,23 +235,18 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
 
   uploadFiles: async (datasetId: number, files: File[], onProgress?: (progress: number) => void) => {
     set({ operationLoading: true, error: null });
-    
     try {
       const uploadPromises = files.map(file => 
         datasetApi.UploadFile(datasetId, file, 'admin')
       );
-      
       // TODO: 实现上传进度跟踪
       const responses = await Promise.all(uploadPromises);
-      
       // 刷新文件列表
       await get().fetchDatasetFiles(datasetId);
-      
       // 更新数据集信息（文件数量和大小可能已变化）
       await get().getDataset(datasetId);
-      
       set({ operationLoading: false });
-      return responses;
+      return responses.map(r => r.data);
     } catch (error: any) {
       set({ 
         error: error.message || '文件上传失败',
@@ -298,9 +286,8 @@ export const useDatasetStore = create<DatasetStore>((set, get) => ({
   getFileDownloadUrl: async (fileId: number) => {
     try {
       const response = await datasetApi.GetFileDownloadUrl(fileId);
-      return response.downloadUrl;
+      return response.data.downloadUrl;
     } catch (error: any) {
-      set({ error: error.message || '获取下载链接失败' });
       throw error;
     }
   },

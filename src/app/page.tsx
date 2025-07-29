@@ -6,6 +6,9 @@ import Sidebar from '@/components/layout/Sidebar';
 import Dashboard from '@/components/dashboard/Dashboard';
 import DataSourceList from '@/components/datasource/DataSourceList';
 import DatasetList from '@/components/dataset/DatasetList';
+import DatasetForm from '@/components/dataset/DatasetForm';
+import DatasetDetailView from '@/components/dataset/DatasetDetailView';
+import { Dataset } from '@/types';
 
 // 模拟用户数据
 const mockUser = {
@@ -16,6 +19,8 @@ const mockUser = {
   team: 'Data Team',
   avatar: undefined
 };
+
+
 
 // 模拟通知数据
 const mockNotifications = [
@@ -41,6 +46,13 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // 数据集管理状态
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingDataset, setEditingDataset] = useState<Dataset | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // 刷新触发器
+  const [viewingDataset, setViewingDataset] = useState<Dataset | null>(null); // 当前查看的数据集
 
   const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
@@ -54,14 +66,107 @@ export default function Home() {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
+  // 数据集管理回调函数
+  const handleAddDataset = () => {
+    setEditingDataset(null);
+    setShowCreateModal(true);
+  };
+
+  const handleEditDataset = (dataset: Dataset) => {
+    setEditingDataset(dataset);
+    setShowEditModal(true);
+  };
+
+  const handleViewDataset = (dataset: Dataset) => {
+    // 在框架内显示数据集详情
+    setViewingDataset(dataset);
+    setActiveTab('dataset-detail');
+  };
+
+  const handleBackToDatasetList = () => {
+    // 返回数据集列表
+    setViewingDataset(null);
+    setActiveTab('dataset');
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setEditingDataset(null);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingDataset(null);
+  };
+
+
+
+  const handleDatasetSuccess = (dataset: Dataset) => {
+    // 成功回调，触发列表刷新
+    console.log('Dataset operation successful:', dataset);
+    console.log('Triggering refresh, current refreshTrigger:', refreshTrigger);
+    setRefreshTrigger(prev => {
+      const newValue = prev + 1;
+      console.log('New refreshTrigger value:', newValue);
+      return newValue;
+    });
+    
+    // 显示成功通知
+    alert(`数据集操作成功！\n名称: ${dataset.name}\n类型: ${dataset.type}\n正在刷新列表...`);
+  };
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onTabChange={setActiveTab} />;
       case 'datasource':
         return <DataSourceList />;
       case 'dataset':
-        return <DatasetList />;
+        return (
+          <div className="min-h-screen bg-gray-50">
+            {/* 数据集列表 */}
+            <DatasetList
+              key={refreshTrigger} // 使用refreshTrigger作为key，强制重新渲染
+              onAddDataset={handleAddDataset}
+              onEditDataset={handleEditDataset}
+              onViewDataset={handleViewDataset}
+            />
+
+            {/* 创建数据集弹窗 */}
+            <DatasetForm
+              visible={showCreateModal}
+              onCancel={handleCloseCreateModal}
+              onSuccess={handleDatasetSuccess}
+            />
+
+            {/* 编辑数据集弹窗 */}
+            <DatasetForm
+              visible={showEditModal}
+              onCancel={handleCloseEditModal}
+              onSuccess={handleDatasetSuccess}
+              editingDataset={editingDataset}
+            />
+
+
+          </div>
+        );
+      case 'dataset-detail':
+        return viewingDataset ? (
+          <div className="p-6 max-w-7xl mx-auto">
+            <DatasetDetailView 
+              dataset={viewingDataset} 
+              onBack={handleBackToDatasetList}
+              onEdit={handleEditDataset}
+            />
+          </div>
+        ) : (
+          <div className="p-6 max-w-7xl mx-auto">
+            <div className="glass-card p-12 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">数据集详情</h2>
+              <p className="text-gray-600">请选择一个数据集查看详情</p>
+            </div>
+          </div>
+        );
       case 'processing':
         return (
           <div className="p-6 max-w-7xl mx-auto">
@@ -117,7 +222,7 @@ export default function Home() {
           </div>
         );
       default:
-        return <Dashboard />;
+        return <Dashboard onTabChange={setActiveTab} />;
     }
   };
 

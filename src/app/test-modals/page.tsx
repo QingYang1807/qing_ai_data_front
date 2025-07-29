@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import DataSourceForm from '@/components/datasource/DataSourceForm';
 import DataSourceSettings from '@/components/datasource/DataSourceSettings';
-import { DataSource, DataSourceType } from '@/types';
+import { DataSource, DataSourceType, DataSourceLevel } from '@/types';
 
 const TestModalsPage = () => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -15,6 +15,7 @@ const TestModalsPage = () => {
     id: '1',
     name: '测试MySQL数据库',
     type: DataSourceType.MYSQL,
+    level: DataSourceLevel.INTERNAL,
     config: {
       host: 'localhost',
       port: 3306,

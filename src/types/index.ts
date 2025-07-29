@@ -445,6 +445,44 @@ export interface User {
 }
 
 // 系统统计信息
+// 数据集评论类型
+export interface DatasetComment {
+  id?: number;
+  datasetId: number;
+  userId: number;
+  username: string;
+  userAvatar?: string;
+  content: string;
+  parentId?: number;
+  replyTo?: string;
+  likes: number;
+  isLiked?: boolean;
+  createTime: string;
+  updateTime?: string;
+  replies?: DatasetComment[];
+}
+
+// 数据集评论创建请求
+export interface DatasetCommentCreateRequest {
+  datasetId: number;
+  content: string;
+  parentId?: number;
+  replyTo?: string;
+}
+
+// 数据集评论更新请求
+export interface DatasetCommentUpdateRequest {
+  content: string;
+}
+
+// 数据集评论查询请求
+export interface DatasetCommentQueryRequest {
+  datasetId: number;
+  parentId?: number;
+  page?: number;
+  size?: number;
+}
+
 export interface SystemStats {
   totalDatasets: number;
   runningTasks: number;

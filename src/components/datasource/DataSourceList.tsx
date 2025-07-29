@@ -1001,6 +1001,13 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
             e.preventDefault();
             setShowDetailModal(false);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              setShowDetailModal(false);
+            }
+          }}
+          tabIndex={-1}
         >
           <div 
             className="glass-card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto modal-content"

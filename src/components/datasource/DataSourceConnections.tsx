@@ -145,6 +145,23 @@ export default function DataSourceConnections({
   const [filterPermission, setFilterPermission] = useState<DataSourcePermission | ''>('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   
+  // ESC键关闭功能
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && visible) {
+        onClose();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [visible, onClose]);
+  
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
     visible: boolean;

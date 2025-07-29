@@ -13,7 +13,11 @@ import {
   Activity
 } from 'lucide-react';
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onTabChange?: (tab: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
   const stats = [
     {
       title: '数据源总数',
@@ -94,6 +98,23 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // 快速操作处理函数
+  const handleAddDataSource = () => {
+    onTabChange?.('datasource');
+  };
+
+  const handleCreateDataset = () => {
+    onTabChange?.('dataset');
+  };
+
+  const handleStartProcessing = () => {
+    onTabChange?.('processing');
+  };
+
+  const handleViewAllTasks = () => {
+    onTabChange?.('processing');
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -133,7 +154,12 @@ const Dashboard: React.FC = () => {
         <div className="glass-card p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">最近任务</h3>
-            <button className="btn-glass-primary text-sm">查看全部</button>
+            <button 
+              onClick={handleViewAllTasks}
+              className="btn-glass-primary text-sm hover:bg-blue-600 transition-colors"
+            >
+              查看全部
+            </button>
           </div>
           
           <div className="space-y-4">
@@ -225,15 +251,24 @@ const Dashboard: React.FC = () => {
       <div className="glass-card p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="btn-glass-primary flex items-center justify-center space-x-2 py-3">
+          <button 
+            onClick={handleAddDataSource}
+            className="btn-glass-primary flex items-center justify-center space-x-2 py-3 hover:bg-blue-600 transition-colors"
+          >
             <Database className="w-5 h-5" />
             <span>添加数据源</span>
           </button>
-          <button className="btn-glass flex items-center justify-center space-x-2 py-3">
+          <button 
+            onClick={handleCreateDataset}
+            className="btn-glass flex items-center justify-center space-x-2 py-3 hover:bg-gray-100 transition-colors"
+          >
             <FileText className="w-5 h-5" />
             <span>创建数据集</span>
           </button>
-          <button className="btn-glass flex items-center justify-center space-x-2 py-3">
+          <button 
+            onClick={handleStartProcessing}
+            className="btn-glass flex items-center justify-center space-x-2 py-3 hover:bg-gray-100 transition-colors"
+          >
             <Activity className="w-5 h-5" />
             <span>启动处理任务</span>
           </button>
