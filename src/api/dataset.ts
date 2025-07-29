@@ -121,7 +121,13 @@ export const datasetApi = {
   async DownloadDataset(datasetId: number): Promise<Blob> {
     // 使用独立的axios实例，避免响应拦截器处理blob数据
     const axios = require('axios');
-    const response = await axios.get(`http://localhost:9101/api/v1/datasets/${datasetId}/download`, {
+    
+    // 使用统一的路径配置
+    const baseUrl = process.env.NODE_ENV === 'development' 
+      ? '/api/v1/datasets' 
+      : `http://localhost:9101/api/v1/datasets`;
+    
+    const response = await axios.get(`${baseUrl}/${datasetId}/download`, {
       responseType: 'blob',
       headers: {
         'Accept': 'application/zip, application/octet-stream',

@@ -96,6 +96,13 @@ export function getModuleUrl(port: ModulePort, path: string = ''): string {
     return `${envUrl}${path}`;
   }
   
+  // 在开发环境中使用相对路径，通过Next.js代理
+  if (process.env.NODE_ENV === 'development') {
+    // 只返回基础路径，不包含具体的API路径，避免重复
+    return `/api/v1${path}`;
+  }
+  
+  // 生产环境使用绝对路径
   const baseUrl = `http://localhost:${port}/api/v1`;
   return `${baseUrl}${path}`;
 }
