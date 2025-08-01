@@ -21,7 +21,8 @@ import {
   FileCode,
   FileSpreadsheet,
   FileText as FileWord,
-  Presentation
+  Presentation,
+  RefreshCw
 } from 'lucide-react';
 import { useDatasetStore } from '@/stores/useDatasetStore';
 import { Dataset, DatasetFile, FileStatus } from '@/types';
@@ -80,6 +81,463 @@ const CODE_FILE_EXTENSIONS = {
   'dockerfile': 'docker',
   'json': 'json'
 } as const;
+
+// 自动检测字符编码
+function detectCharset(bytes: Uint8Array, hintCharset?: string): string {
+  // 首先检查BOM标记
+  if (bytes.length >= 3) {
+    if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+      return 'utf-8';
+    } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+      return 'utf-16be';
+    } else if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+      return 'utf-16le';
+    }
+  }
+
+  // 如果有提示字符集，优先使用
+  if (hintCharset) {
+    const normalizedHint = hintCharset.toLowerCase();
+    if (['utf-8', 'utf8', 'gbk', 'gb2312', 'gb18030', 'big5', 'iso-8859-1', 'latin1'].includes(normalizedHint)) {
+      return normalizedHint;
+    }
+  }
+
+  // 简单的字符编码检测
+  let chineseCharCount = 0;
+  let gbkCharCount = 0;
+  let big5CharCount = 0;
+  let utf8CharCount = 0;
+  
+  for (let i = 0; i < bytes.length; i++) {
+    const byte = bytes[i];
+    
+    // 检查UTF-8编码模式
+    if (byte >= 0x80) {
+      if (i + 1 < bytes.length && bytes[i + 1] >= 0x80 && bytes[i + 1] <= 0xBF) {
+        // 可能是UTF-8
+        utf8CharCount++;
+      }
+    }
+    
+    // 检查GBK编码模式
+    if (byte >= 0x81 && byte <= 0xFE && i + 1 < bytes.length) {
+      const byte2 = bytes[i + 1];
+      if (byte2 >= 0x40 && byte2 <= 0xFE && byte2 !== 0x7F) {
+        gbkCharCount++;
+        chineseCharCount++;
+        i++; // 跳过下一个字节
+      }
+    }
+    
+    // 检查BIG5编码模式
+    if (byte >= 0xA1 && byte <= 0xFE && i + 1 < bytes.length) {
+      const byte2 = bytes[i + 1];
+      if ((byte2 >= 0x40 && byte2 <= 0x7E) || (byte2 >= 0xA1 && byte2 <= 0xFE)) {
+        big5CharCount++;
+        chineseCharCount++;
+        i++; // 跳过下一个字节
+      }
+    }
+  }
+
+  // 如果有中文字符，根据编码模式判断
+  if (chineseCharCount > 0) {
+    if (gbkCharCount > big5CharCount && gbkCharCount > utf8CharCount) {
+      return 'gbk';
+    } else if (big5CharCount > gbkCharCount && big5CharCount > utf8CharCount) {
+      return 'big5';
+    } else if (utf8CharCount > gbkCharCount && utf8CharCount > big5CharCount) {
+      return 'utf-8';
+    }
+  }
+
+  // 默认使用UTF-8
+  return 'utf-8';
+}
+
+// MHTML内容解码函数
+function decodeMHTMLContent(arrayBuffer: ArrayBuffer, contentType: string | null): string {
+  try {
+    // 检查Content-Type中的字符编码
+    let hintCharset = null;
+    if (contentType) {
+      const charsetMatch = contentType.match(/charset=([^;]+)/i);
+      if (charsetMatch) {
+        hintCharset = charsetMatch[1].trim().toLowerCase();
+      }
+    }
+
+    // 转换ArrayBuffer为字符串
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // 检查BOM标记
+    if (bytes.length >= 3) {
+      if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+        // UTF-8 BOM
+        return new TextDecoder('utf-8').decode(bytes.slice(3));
+      } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+        // UTF-16 BE BOM
+        return new TextDecoder('utf-16be').decode(bytes.slice(2));
+      } else if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+        // UTF-16 LE BOM
+        return new TextDecoder('utf-16le').decode(bytes.slice(2));
+      }
+    }
+
+    // 自动检测字符编码
+    const detectedCharset = detectCharset(bytes, hintCharset || undefined);
+    console.log(`Detected charset: ${detectedCharset}, hint: ${hintCharset}`);
+
+    // 根据字符集解码
+    try {
+      switch (detectedCharset) {
+        case 'utf-8':
+        case 'utf8':
+          return new TextDecoder('utf-8').decode(bytes);
+        case 'gbk':
+        case 'gb2312':
+        case 'gb18030':
+          // 尝试使用GBK解码，如果失败则回退到UTF-8
+          try {
+            // 由于浏览器不支持GBK，我们需要手动处理
+            return decodeGBK(bytes);
+          } catch (e) {
+            console.warn('GBK decoding failed, falling back to UTF-8');
+            return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+          }
+        case 'big5':
+          // 尝试使用BIG5解码
+          try {
+            return decodeBIG5(bytes);
+          } catch (e) {
+            console.warn('BIG5 decoding failed, falling back to UTF-8');
+            return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+          }
+        case 'iso-8859-1':
+        case 'latin1':
+          return new TextDecoder('iso-8859-1').decode(bytes);
+        default:
+          // 尝试UTF-8，如果失败则使用replacement字符
+          return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+      }
+    } catch (e) {
+      console.warn(`Failed to decode with charset ${detectedCharset}, trying fallback`);
+      // 最后的回退方案
+      return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    }
+  } catch (error) {
+    console.error('Content decoding error:', error);
+    // 最后的回退方案
+    return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(arrayBuffer));
+  }
+}
+
+// 改进的GBK解码函数，使用更准确的编码映射
+function decodeGBK(bytes: Uint8Array): string {
+  let result = '';
+  let i = 0;
+  
+  // GBK常见字符映射（简化版，包含常用中文字符）
+  const gbkMap = new Map([
+    // 常用中文字符 (0xB0A1-0xF7FE范围内的一些字符)
+    [0xB0A1, '啊'], [0xB0A2, '阿'], [0xB0A3, '埃'], [0xB0A4, '挨'], [0xB0A5, '哎'],
+    [0xB0A6, '唉'], [0xB0A7, '哀'], [0xB0A8, '皑'], [0xB0A9, '癌'], [0xB0AA, '蔼'],
+    [0xB0AB, '矮'], [0xB0AC, '艾'], [0xB0AD, '碍'], [0xB0AE, '爱'], [0xB0AF, '隘'],
+    [0xD6D0, '中'], [0xB9FA, '国'], [0xC8CB, '人'], [0xCDC4, '大'], [0xB5D8, '地'],
+    [0xC9CF, '你'], [0xC3C5, '我'], [0xCBFB, '他'], [0xCBBE, '们'], [0xBAC3, '在'],
+    [0xD5BB, '有'], [0xCACB, '是'], [0xB2BB, '不'], [0xC1CB, '了'], [0xB8F6, '就'],
+    [0xC8B8, '和'], [0xB8DF, '个'], [0xD6BB, '上'], [0xC0D6, '来'], [0xD6D8, '到'],
+    [0xB9FB, '这'], [0xD6BB, '个'], [0xC9B5, '那'], [0xD6D0, '中'], [0xC8CB, '人'],
+    [0xD2BB, '一'], [0xB6FE, '二'], [0xC8FD, '三'], [0xCBCD, '四'], [0xCEE5, '五'],
+    [0xC1F9, '六'], [0xC6DF, '七'], [0xB0CB, '八'], [0xBEC5, '九'], [0xCAAE, '十'],
+    [0xD4DA, '的'], [0xBDB2, '要'], [0xC3BB, '以'], [0xC9B5, '那'], [0xD6BB, '个'],
+    [0xB7BD, '与'], [0xD2BB, '也'], [0xB2BB, '不'], [0xB9FD, '还'], [0xCAAC, '是'],
+    [0xD6BB, '个'], [0xB7BD, '与'], [0xD2BB, '也'], [0xB2BB, '不'], [0xB9FD, '还']
+  ]);
+
+  while (i < bytes.length) {
+    const byte = bytes[i];
+    
+    if (byte <= 0x7F) {
+      // ASCII字符
+      result += String.fromCharCode(byte);
+      i++;
+    } else if (byte >= 0x81 && byte <= 0xFE && i + 1 < bytes.length) {
+      // GBK双字节字符
+      const byte2 = bytes[i + 1];
+      if (byte2 >= 0x40 && byte2 <= 0xFE && byte2 !== 0x7F) {
+        const codePoint = (byte << 8) | byte2;
+        
+        // 检查是否在映射表中
+        if (gbkMap.has(codePoint)) {
+          result += gbkMap.get(codePoint)!;
+        } else if (codePoint >= 0x4E00 && codePoint <= 0x9FFF) {
+          // 基本汉字Unicode范围
+          result += String.fromCharCode(codePoint);
+        } else {
+          // 尝试直接转换为字符
+          try {
+            result += String.fromCharCode(codePoint);
+          } catch {
+            result += '?';
+          }
+        }
+        i += 2;
+      } else {
+        result += String.fromCharCode(byte);
+        i++;
+      }
+    } else {
+      result += String.fromCharCode(byte);
+      i++;
+    }
+  }
+  
+  return result;
+}
+
+// 改进的BIG5解码函数，使用更准确的编码映射
+function decodeBIG5(bytes: Uint8Array): string {
+  let result = '';
+  let i = 0;
+  
+  // BIG5常见字符映射（简化版，包含常用繁体中文字符）
+  const big5Map = new Map([
+    // 常用繁体中文字符
+    [0xA440, '一'], [0xA441, '丁'], [0xA442, '七'], [0xA443, '万'], [0xA444, '丈'],
+    [0xA445, '三'], [0xA446, '上'], [0xA447, '下'], [0xA448, '不'], [0xA449, '与'],
+    [0xA44A, '丐'], [0xA44B, '丑'], [0xA44C, '且'], [0xA44D, '丕'], [0xA44E, '世'],
+    [0xA44F, '丘'], [0xA450, '丙'], [0xA451, '丞'], [0xA452, '乖'], [0xA453, '串'],
+    [0xA454, '中'], [0xA455, '丟'], [0xA456, '丹'], [0xA457, '主'], [0xA458, '乃'],
+    [0xA459, '久'], [0xA45A, '么'], [0xA45B, '之'], [0xA45C, '乍'], [0xA45D, '乎'],
+    [0xA45E, '乏'], [0xA45F, '亭'], [0xA460, '亂'], [0xA461, '了'], [0xA462, '予'],
+    [0xA463, '事'], [0xA464, '二'], [0xA465, '于'], [0xA466, '云'], [0xA467, '互'],
+    [0xA468, '五'], [0xA469, '井'], [0xA46A, '亙'], [0xA46B, '亞'], [0xA46C, '些'],
+    [0xA46D, '亟'], [0xA46E, '亡'], [0xA46F, '亢'], [0xA470, '交'], [0xA471, '亥'],
+    [0xA472, '亦'], [0xA473, '亨'], [0xA474, '享'], [0xA475, '京'], [0xA476, '亮'],
+    [0xA477, '亲'], [0xA478, '人'], [0xA479, '仁'], [0xA47A, '什'], [0xA47B, '仇'],
+    [0xA47C, '今'], [0xA47D, '介'], [0xA47E, '仍'], [0xA4A1, '從'], [0xA4A2, '仔'],
+    [0xA4A3, '他'], [0xA4A4, '仗'], [0xA4A5, '付'], [0xA4A6, '仙'], [0xA4A7, '代'],
+    [0xA4A8, '令'], [0xA4A9, '以'], [0xA4AA, '仟'], [0xA4AB, '仵'], [0xA4AC, '件'],
+    [0xA4AD, '任'], [0xA4AE, '份'], [0xA4AF, '仿'], [0xA4B0, '企'], [0xA4B1, '伊'],
+    [0xA4B2, '伍'], [0xA4B3, '伏'], [0xA4B4, '伐'], [0xA4B5, '休'], [0xA4B6, '伙'],
+    [0xA4B7, '會'], [0xA4B8, '企'], [0xA4B9, '伎'], [0xA4BA, '估'], [0xA4BB, '体'],
+    [0xA4BC, '何'], [0xA4BD, '但'], [0xA4BE, '作'], [0xA4BF, '你'], [0xA4C0, '伯'],
+    [0xA4C1, '低'], [0xA4C2, '住'], [0xA4C3, '伴'], [0xA4C4, '伶'], [0xA4C5, '余'],
+    [0xA4C6, '佛'], [0xA4C7, '作'], [0xA4C8, '你'], [0xA4C9, '佣'], [0xA4CA, '何'],
+    [0xA4CB, '你'], [0xA4CC, '你'], [0xA4CD, '來'], [0xA4CE, '們'], [0xA4CF, '侖'],
+    [0xA4D0, '倆'], [0xA4D1, '偷'], [0xA4D2, '偉'], [0xA4D3, '偽'], [0xA4D4, '健'],
+    [0xA4D5, '停'], [0xA4D6, '們'], [0xA4D7, '做'], [0xA4D8, '你'], [0xA4D9, '偵'],
+    [0xA4DA, '偶'], [0xA4DB, '偷'], [0xA4DC, '偽'], [0xA4DD, '健'], [0xA4DE, '停'],
+    [0xA4DF, '們'], [0xA4E0, '做'], [0xA4E1, '你'], [0xA4E2, '偵'], [0xA4E3, '偽'],
+    [0xB0EA, '中'], [0xA6A1, '國'], [0xA448, '不'], [0xBAA7, '來'], [0xA45A, '了'],
+    [0xA44F, '丘'], [0xA446, '上'], [0xA447, '下'], [0xA449, '與'], [0xA45B, '之'],
+    [0xA477, '親'], [0xA478, '人'], [0xA479, '仁'], [0xA4A3, '他'], [0xA4CE, '們'],
+    [0xA4C4, '你'], [0xA4D5, '們'], [0xA4D6, '做'], [0xA4D7, '你'], [0xA4D8, '偵'],
+    [0xA4D9, '偽'], [0xA4DA, '健'], [0xA4DB, '停'], [0xA4DC, '們'], [0xA4DD, '做']
+  ]);
+
+  while (i < bytes.length) {
+    const byte = bytes[i];
+    
+    if (byte <= 0x7F) {
+      // ASCII字符
+      result += String.fromCharCode(byte);
+      i++;
+    } else if (byte >= 0xA1 && byte <= 0xFE && i + 1 < bytes.length) {
+      // BIG5双字节字符
+      const byte2 = bytes[i + 1];
+      if ((byte2 >= 0x40 && byte2 <= 0x7E) || (byte2 >= 0xA1 && byte2 <= 0xFE)) {
+        const codePoint = (byte << 8) | byte2;
+        
+        // 检查是否在映射表中
+        if (big5Map.has(codePoint)) {
+          result += big5Map.get(codePoint)!;
+        } else if (codePoint >= 0x4E00 && codePoint <= 0x9FFF) {
+          // 基本汉字Unicode范围
+          result += String.fromCharCode(codePoint);
+        } else {
+          // 尝试直接转换为字符
+          try {
+            result += String.fromCharCode(codePoint);
+          } catch {
+            result += '?';
+          }
+        }
+        i += 2;
+      } else {
+        result += String.fromCharCode(byte);
+        i++;
+      }
+    } else {
+      result += String.fromCharCode(byte);
+      i++;
+    }
+  }
+  
+  return result;
+}
+
+// MHTML解析函数
+function parseMHTML(mhtmlContent: string): string {
+  try {
+    // MHTML文件通常以MIME头部开始
+    const lines = mhtmlContent.split('\n');
+    let boundary = '';
+    let inHtmlPart = false;
+    let htmlContent = '';
+    let contentType = '';
+    let contentTransferEncoding = '';
+    let location = '';
+    let charset = 'utf-8';
+
+    // 查找boundary和全局字符编码
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('boundary=')) {
+        boundary = line.split('=')[1].replace(/"/g, '');
+      } else if (line.toLowerCase().startsWith('content-type:')) {
+        const fullContentType = line.split(':')[1].trim();
+        if (fullContentType.toLowerCase().includes('charset=')) {
+          const charsetMatch = fullContentType.match(/charset=([^;]+)/i);
+          if (charsetMatch) {
+            charset = charsetMatch[1].trim().toLowerCase();
+          }
+        }
+      }
+    }
+
+    // 如果没有找到boundary，尝试直接提取HTML
+    if (!boundary) {
+      // 尝试查找HTML内容
+      const htmlMatch = mhtmlContent.match(/<html[^>]*>[\s\S]*?<\/html>/i);
+      if (htmlMatch) {
+        return htmlMatch[0];
+      }
+      return mhtmlContent;
+    }
+
+    // 按boundary分割内容
+    const parts = mhtmlContent.split('--' + boundary);
+    
+    for (const part of parts) {
+      const partLines = part.trim().split('\n');
+      let isHtmlPart = false;
+      let partContent = '';
+      let skipHeaders = true;
+
+      for (let i = 0; i < partLines.length; i++) {
+        const line = partLines[i].trim();
+        
+        if (line === '') {
+          skipHeaders = false;
+          continue;
+        }
+
+        if (skipHeaders) {
+          if (line.toLowerCase().startsWith('content-type:')) {
+            contentType = line.split(':')[1].trim();
+            if (contentType.toLowerCase().includes('text/html')) {
+              isHtmlPart = true;
+            }
+            // 检查部分的字符编码
+            if (contentType.toLowerCase().includes('charset=')) {
+              const charsetMatch = contentType.match(/charset=([^;]+)/i);
+              if (charsetMatch) {
+                charset = charsetMatch[1].trim().toLowerCase();
+              }
+            }
+          } else if (line.toLowerCase().startsWith('content-transfer-encoding:')) {
+            contentTransferEncoding = line.split(':')[1].trim();
+          } else if (line.toLowerCase().startsWith('content-location:')) {
+            location = line.split(':')[1].trim();
+          }
+        } else {
+          partContent += line + '\n';
+        }
+      }
+
+      if (isHtmlPart && partContent) {
+        // 处理编码
+        if (contentTransferEncoding.toLowerCase() === 'base64') {
+          try {
+            htmlContent = atob(partContent.trim());
+          } catch (e) {
+            htmlContent = partContent;
+          }
+        } else if (contentTransferEncoding.toLowerCase() === 'quoted-printable') {
+          htmlContent = decodeQuotedPrintable(partContent);
+        } else {
+          htmlContent = partContent;
+        }
+        break;
+      }
+    }
+
+    // 如果没有找到HTML部分，尝试提取任何HTML内容
+    if (!htmlContent) {
+      const htmlMatch = mhtmlContent.match(/<html[^>]*>[\s\S]*?<\/html>/i);
+      if (htmlMatch) {
+        htmlContent = htmlMatch[0];
+      } else {
+        htmlContent = mhtmlContent;
+      }
+    }
+
+    // 清理和修复HTML内容
+    return cleanAndFixHTML(htmlContent);
+  } catch (error) {
+    console.error('MHTML parsing error:', error);
+    // 如果解析失败，尝试直接提取HTML内容
+    const htmlMatch = mhtmlContent.match(/<html[^>]*>[\s\S]*?<\/html>/i);
+    if (htmlMatch) {
+      return htmlMatch[0];
+    }
+    return mhtmlContent;
+  }
+}
+
+// Quoted-Printable解码函数
+function decodeQuotedPrintable(str: string): string {
+  return str
+    .replace(/=([0-9A-F]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/=\r?\n/g, '')
+    .replace(/_/g, ' ');
+}
+
+// 清理和修复HTML内容
+function cleanAndFixHTML(html: string): string {
+  let cleaned = html;
+
+  // 移除MHTML特定的头部信息
+  cleaned = cleaned.replace(/^From:.*$/gm, '');
+  cleaned = cleaned.replace(/^Subject:.*$/gm, '');
+  cleaned = cleaned.replace(/^Date:.*$/gm, '');
+  cleaned = cleaned.replace(/^MIME-Version:.*$/gm, '');
+  cleaned = cleaned.replace(/^Content-Type:.*$/gm, '');
+  cleaned = cleaned.replace(/^Content-Transfer-Encoding:.*$/gm, '');
+  cleaned = cleaned.replace(/^Content-Location:.*$/gm, '');
+
+  // 移除boundary标记
+  cleaned = cleaned.replace(/^--.*$/gm, '');
+
+  // 清理空行
+  cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
+
+  // 确保HTML有完整的结构
+  if (!cleaned.includes('<html')) {
+    cleaned = `<html><head><meta charset="utf-8"></head><body>${cleaned}</body></html>`;
+  } else if (!cleaned.includes('<head>')) {
+    cleaned = cleaned.replace('<html', '<html><head><meta charset="utf-8"></head>');
+  }
+
+  // 修复相对路径
+  cleaned = cleaned.replace(/href=["']\/([^"']*)["']/g, 'href="https://$1"');
+  cleaned = cleaned.replace(/src=["']\/([^"']*)["']/g, 'src="https://$1"');
+
+  return cleaned.trim();
+}
 
 interface DatasetFilesProps {
   dataset: Dataset;
@@ -181,10 +639,19 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
         setPreviewType('code');
       }
       // HTML文件
-      else if (fileExtension === 'html' || fileExtension === 'htm' || fileExtension === 'mhtml') {
+      else if (fileExtension === 'html' || fileExtension === 'htm') {
         const response = await fetch(downloadUrl);
         const html = await response.text();
         setPreviewContent(html);
+        setPreviewType('html');
+      }
+      // MHTML文件
+      else if (fileExtension === 'mhtml') {
+        const response = await fetch(downloadUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        const mhtmlContent = decodeMHTMLContent(arrayBuffer, response.headers.get('content-type'));
+        const parsedHtml = parseMHTML(mhtmlContent);
+        setPreviewContent(parsedHtml);
         setPreviewType('html');
       }
       // PowerPoint文件
@@ -1130,7 +1597,7 @@ function FilePreviewContent({
     );
   }
 
-  if (previewType === 'html' && ['html', 'htm', 'mhtml'].includes(fileExtension)) {
+  if (previewType === 'html' && ['html', 'htm'].includes(fileExtension)) {
     return (
       <div className="bg-white rounded-lg border">
         <iframe
@@ -1140,6 +1607,16 @@ function FilePreviewContent({
           sandbox="allow-scripts allow-same-origin"
         />
       </div>
+    );
+  }
+
+  if (previewType === 'html' && fileExtension === 'mhtml') {
+    return (
+      <MHTMLPreview 
+        file={file} 
+        content={content} 
+        fileName={fileName}
+      />
     );
   }
 
@@ -1395,6 +1872,63 @@ function PreviewModal({
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// MHTML预览组件（带刷新功能）
+function MHTMLPreview({ 
+  file, 
+  content, 
+  fileName 
+}: { 
+  file: DatasetFile; 
+  content: string; 
+  fileName: string;
+}) {
+  const [iframeKey, setIframeKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setIframeKey(prev => prev + 1);
+    
+    // 模拟刷新延迟
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 500);
+  };
+
+  return (
+    <div className="bg-white rounded-lg border">
+      <div className="p-4 border-b bg-gray-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">
+              MHTML 预览 - {fileName}
+            </span>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="刷新预览"
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+            刷新
+          </button>
+        </div>
+      </div>
+      <div className="p-4">
+        <iframe
+          key={iframeKey}
+          srcDoc={content}
+          className="w-full h-full min-h-[600px] border-0 rounded-lg"
+          title={fileName}
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        />
       </div>
     </div>
   );
