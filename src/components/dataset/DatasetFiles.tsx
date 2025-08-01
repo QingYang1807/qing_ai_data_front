@@ -13,12 +13,73 @@ import {
   FileText,
   MoreHorizontal,
   Search,
-  Filter
+  Filter,
+  X,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  FileCode,
+  FileSpreadsheet,
+  FileText as FileWord,
+  Presentation
 } from 'lucide-react';
 import { useDatasetStore } from '@/stores/useDatasetStore';
 import { Dataset, DatasetFile, FileStatus } from '@/types';
 import { ToastContainer } from '@/components/common/Toast';
 import { useToast } from '@/hooks/useToast';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+// 导入文件处理库
+import * as XLSX from 'xlsx';
+import mammoth from 'mammoth';
+import Prism from 'prismjs';
+import 'prismjs/themes/prism.css';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-c';
+import 'prismjs/components/prism-cpp';
+import 'prismjs/components/prism-csharp';
+import 'prismjs/components/prism-php';
+import 'prismjs/components/prism-ruby';
+import 'prismjs/components/prism-go';
+import 'prismjs/components/prism-rust';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-yaml';
+import 'prismjs/components/prism-markdown';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-docker';
+
+// 代码文件扩展名映射 - 共享配置
+const CODE_FILE_EXTENSIONS = {
+  'js': 'javascript',
+  'ts': 'typescript',
+  'jsx': 'javascript',
+  'tsx': 'typescript',
+  'py': 'python',
+  'java': 'java',
+  'c': 'c',
+  'cpp': 'cpp',
+  'cs': 'csharp',
+  'php': 'php',
+  'rb': 'ruby',
+  'go': 'go',
+  'rs': 'rust',
+  'sql': 'sql',
+  'html': 'markup',
+  'css': 'css',
+  'scss': 'css',
+  'less': 'css',
+  'xml': 'markup',
+  'yaml': 'yaml',
+  'yml': 'yaml',
+  'md': 'markdown',
+  'sh': 'bash',
+  'dockerfile': 'docker',
+  'json': 'json'
+} as const;
 
 interface DatasetFilesProps {
   dataset: Dataset;
@@ -29,9 +90,30 @@ interface DatasetFilesProps {
  */
 export default function DatasetFiles({ dataset }: DatasetFilesProps) {
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewFile, setPreviewFile] = useState<DatasetFile | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint'>('text');
+  const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState('');
   const { toasts, showError, removeToast } = useToast();
   const [selectedFiles, setSelectedFiles] = useState<number[]>([]);
+  
+  // 确认对话框状态
+  const [confirmDialog, setConfirmDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'danger' | 'warning' | 'info' | 'success';
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'danger',
+    onConfirm: () => {}
+  });
 
   // 从store获取文件状态
   const {
@@ -64,6 +146,144 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
     }
   };
 
+  // 获取代码语言
+  const getCodeLanguage = (fileName: string): string => {
+    const extension = fileName.toLowerCase().split('.').pop() || '';
+    return CODE_FILE_EXTENSIONS[extension as keyof typeof CODE_FILE_EXTENSIONS] || 'text';
+  };
+
+  // 预览文件
+  const HandlePreviewFile = async (file: DatasetFile, fileIndex?: number) => {
+    setPreviewFile(file);
+    setShowPreviewModal(true);
+    setPreviewLoading(true);
+    setPreviewContent(null);
+    setPreviewType('text');
+    
+    if (fileIndex !== undefined) {
+      setCurrentFileIndex(fileIndex);
+    }
+
+    try {
+      // 获取文件下载URL
+      const downloadUrl = await getFileDownloadUrl(file.id!);
+      
+      // 根据文件类型处理预览
+      const fileName = file.originalName || file.fileName || '';
+      const fileExtension = fileName.toLowerCase().split('.').pop() || '';
+      const contentType = file.contentType || '';
+
+      // 代码文件
+      if (Object.keys(CODE_FILE_EXTENSIONS).includes(fileExtension)) {
+        const response = await fetch(downloadUrl);
+        const text = await response.text();
+        setPreviewContent(text);
+        setPreviewType('code');
+      }
+      // HTML文件
+      else if (fileExtension === 'html' || fileExtension === 'htm' || fileExtension === 'mhtml') {
+        const response = await fetch(downloadUrl);
+        const html = await response.text();
+        setPreviewContent(html);
+        setPreviewType('html');
+      }
+      // PowerPoint文件
+      else if (['ppt', 'pptx'].includes(fileExtension)) {
+        const response = await fetch(downloadUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        // 将ArrayBuffer转换为base64字符串
+        const bytes = new Uint8Array(arrayBuffer);
+        const base64 = btoa(String.fromCharCode(...bytes));
+        setPreviewContent(base64);
+        setPreviewType('powerpoint');
+      }
+      // Excel文件
+      else if (['xls', 'xlsx'].includes(fileExtension)) {
+        const response = await fetch(downloadUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        
+        // 获取所有工作表信息
+        const sheets = workbook.SheetNames.map(name => ({
+          name,
+          data: XLSX.utils.sheet_to_html(workbook.Sheets[name])
+        }));
+        
+        setPreviewContent(JSON.stringify(sheets));
+        setPreviewType('excel');
+      }
+      // Word文档
+      else if (['doc', 'docx'].includes(fileExtension)) {
+        const response = await fetch(downloadUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        setPreviewContent(result.value);
+        setPreviewType('html');
+      }
+      // 文本类文件
+      else if (contentType.startsWith('text/') || 
+               ['md', 'markdown', 'txt', 'log', 'csv', 'tsv'].includes(fileExtension)) {
+        const response = await fetch(downloadUrl);
+        const text = await response.text();
+        setPreviewContent(text);
+        setPreviewType('text');
+      }
+      // JSON文件
+      else if (contentType.includes('json') || fileExtension === 'json' || fileExtension === 'jsonl') {
+        const response = await fetch(downloadUrl);
+        const text = await response.text();
+        setPreviewContent(text);
+        setPreviewType('text');
+      }
+      // 图片文件
+      else if (contentType.startsWith('image/') || 
+               ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'].includes(fileExtension)) {
+        setPreviewContent(downloadUrl);
+        setPreviewType('image');
+      }
+      // PDF文件
+      else if (contentType.includes('pdf') || fileExtension === 'pdf') {
+        setPreviewContent(downloadUrl);
+        setPreviewType('pdf');
+      }
+      // 其他文件类型
+      else {
+        setPreviewContent(null);
+        setPreviewType('text');
+      }
+    } catch (error) {
+      console.error('Failed to preview file:', error);
+      showError('预览失败', '无法预览此文件，请尝试下载后查看');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // 切换到上一个文件
+  const HandlePreviousFile = () => {
+    if (currentFileIndex > 0) {
+      const prevFile = files[currentFileIndex - 1];
+      HandlePreviewFile(prevFile, currentFileIndex - 1);
+    }
+  };
+
+  // 切换到下一个文件
+  const HandleNextFile = () => {
+    if (currentFileIndex < files.length - 1) {
+      const nextFile = files[currentFileIndex + 1];
+      HandlePreviewFile(nextFile, currentFileIndex + 1);
+    }
+  };
+
+  // 关闭预览弹窗
+  const HandleClosePreview = () => {
+    setShowPreviewModal(false);
+    setPreviewFile(null);
+    setPreviewContent(null);
+    setPreviewType('text');
+  };
+
   // 下载文件
   const HandleDownloadFile = async (fileId: number) => {
     try {
@@ -76,30 +296,47 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
 
   // 删除文件
   const HandleDeleteFile = async (fileId: number) => {
-    if (!confirm('确定要删除这个文件吗？')) return;
-
-    try {
-      await deleteFile(fileId);
-      LoadFiles();
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-    }
+    setConfirmDialog({
+      visible: true,
+      title: '删除文件',
+      message: '确定要删除这个文件吗？此操作不可撤销。',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteFile(fileId);
+          LoadFiles();
+          setConfirmDialog(prev => ({ ...prev, visible: false }));
+        } catch (error) {
+          console.error('Failed to delete file:', error);
+          showError('删除失败', '文件删除失败，请重试');
+        }
+      }
+    });
   };
 
   // 批量删除文件
   const HandleBatchDelete = async () => {
     if (selectedFiles.length === 0) return;
-    if (!confirm(`确定要删除选中的 ${selectedFiles.length} 个文件吗？`)) return;
-
-    try {
-      for (const fileId of selectedFiles) {
-        await deleteFile(fileId);
+    
+    setConfirmDialog({
+      visible: true,
+      title: '批量删除文件',
+      message: `确定要删除选中的 ${selectedFiles.length} 个文件吗？此操作不可撤销。`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          for (const fileId of selectedFiles) {
+            await deleteFile(fileId);
+          }
+          setSelectedFiles([]);
+          LoadFiles();
+          setConfirmDialog(prev => ({ ...prev, visible: false }));
+        } catch (error) {
+          console.error('Failed to batch delete files:', error);
+          showError('删除失败', '批量删除文件失败，请重试');
+        }
       }
-      setSelectedFiles([]);
-      LoadFiles();
-    } catch (error) {
-      console.error('Failed to batch delete files:', error);
-    }
+    });
   };
 
   // 选择/取消选择文件
@@ -136,13 +373,26 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
   };
 
   // 获取文件图标
-  const GetFileIcon = (contentType?: string) => {
-    if (!contentType) return File;
+  const GetFileIcon = (contentType?: string, fileName?: string) => {
+    if (!contentType && !fileName) return File;
     
-    if (contentType.startsWith('image/')) return Image;
-    if (contentType.startsWith('video/')) return Video;
-    if (contentType.startsWith('audio/')) return Music;
-    if (contentType.includes('text/') || contentType.includes('json') || contentType.includes('csv')) return FileText;
+    const fileExtension = fileName?.toLowerCase().split('.').pop() || '';
+    
+    // 代码文件
+    if (Object.keys(CODE_FILE_EXTENSIONS).includes(fileExtension)) {
+      return FileCode;
+    }
+    
+    // Office文档
+    if (['doc', 'docx'].includes(fileExtension)) return FileWord;
+    if (['xls', 'xlsx'].includes(fileExtension)) return FileSpreadsheet;
+    if (['ppt', 'pptx'].includes(fileExtension)) return Presentation;
+    
+    // 其他文件类型
+    if (contentType?.startsWith('image/')) return Image;
+    if (contentType?.startsWith('video/')) return Video;
+    if (contentType?.startsWith('audio/')) return Music;
+    if (contentType?.includes('text/') || contentType?.includes('json') || contentType?.includes('csv')) return FileText;
     
     return File;
   };
@@ -280,8 +530,8 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredFiles.map((file) => {
-                    const FileIcon = GetFileIcon(file.contentType);
+                  {filteredFiles.map((file, index) => {
+                    const FileIcon = GetFileIcon(file.contentType, file.originalName || file.fileName);
                     const fileStatusConfig_ = fileStatusConfig[file.status as FileStatus];
                     const isSelected = selectedFiles.includes(file.id!);
 
@@ -324,15 +574,13 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
-                            {file.previewUrl && (
-                              <button
-                                onClick={() => window.open(file.previewUrl, '_blank')}
-                                className="text-blue-600 hover:text-blue-900"
-                                title="预览"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => HandlePreviewFile(file, index)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="预览"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
                             <button
                               onClick={() => file.id && HandleDownloadFile(file.id)}
                               className="text-green-600 hover:text-green-900"
@@ -406,6 +654,31 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
           }}
         />
       )}
+
+      {/* 文件预览弹窗 */}
+      {showPreviewModal && previewFile && (
+        <PreviewModal
+          visible={showPreviewModal}
+          onCancel={HandleClosePreview}
+          file={previewFile}
+          content={previewContent}
+          loading={previewLoading}
+          previewType={previewType}
+          onDownload={() => previewFile.id && HandleDownloadFile(previewFile.id)}
+          onPrevious={HandlePreviousFile}
+          onNext={HandleNextFile}
+        />
+      )}
+
+      {/* 确认对话框 */}
+      <ConfirmDialog
+        visible={confirmDialog.visible}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(prev => ({ ...prev, visible: false }))}
+      />
     </div>
   );
 }
@@ -424,6 +697,7 @@ function FileUploadModal({
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const { showError } = useToast();
 
   const HandleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -433,6 +707,27 @@ function FileUploadModal({
 
   const HandleRemoveFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const HandleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const HandleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      setFiles(prev => [...prev, ...droppedFiles]);
+    }
   };
 
   const HandleUpload = async () => {
@@ -471,13 +766,25 @@ function FileUploadModal({
           </h3>
 
           {/* 文件选择区域 */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <div 
+            className={`border-2 border-dashed rounded-lg p-8 text-center mb-4 transition-colors ${
+              dragActive 
+                ? 'border-blue-400 bg-blue-50' 
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onDragEnter={HandleDrag}
+            onDragLeave={HandleDrag}
+            onDragOver={HandleDrag}
+            onDrop={HandleDrop}
+          >
+            <Upload className={`h-12 w-12 mx-auto mb-4 transition-colors ${
+              dragActive ? 'text-blue-500' : 'text-gray-400'
+            }`} />
             <div className="text-lg font-medium text-gray-900 mb-2">
-              选择文件上传
+              {dragActive ? '释放文件以上传' : '拖拽文件到此处或点击选择'}
             </div>
             <p className="text-gray-500 mb-4">
-              支持多文件上传，点击选择文件
+              支持多文件上传，支持拖拽多个文件
             </p>
             <input
               type="file"
@@ -538,6 +845,478 @@ function FileUploadModal({
               {uploading ? '上传中...' : `上传 ${files.length} 个文件`}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+} 
+
+// 文件预览内容组件
+function FilePreviewContent({ 
+  file, 
+  content, 
+  previewType 
+}: { 
+  file: DatasetFile; 
+  content: string; 
+  previewType: 'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint';
+}) {
+  const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
+  const [sheets, setSheets] = useState<Array<{name: string, data: string}>>([]);
+  const fileName = file.originalName || file.fileName || '';
+  const fileExtension = fileName.toLowerCase().split('.').pop() || '';
+  const contentType = file.contentType || '';
+
+  // 处理Excel数据
+  useEffect(() => {
+    if (fileExtension === 'xls' || fileExtension === 'xlsx') {
+      try {
+        const sheetsData = JSON.parse(content);
+        setSheets(sheetsData);
+        setCurrentSheetIndex(0);
+      } catch (error) {
+        console.error('Failed to parse Excel data:', error);
+      }
+    }
+  }, [content, fileExtension]);
+
+  // 获取代码语言
+  const getCodeLanguage = (fileName: string): string => {
+    const extension = fileName.toLowerCase().split('.').pop() || '';
+    return CODE_FILE_EXTENSIONS[extension as keyof typeof CODE_FILE_EXTENSIONS] || 'text';
+  };
+
+  // Markdown渲染函数
+  const renderMarkdown = (content: string) => {
+    return content
+      // 处理标题
+      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-gray-900 mt-8 mb-4">$1</h1>')
+      // 处理粗体
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+      // 处理斜体
+      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      // 处理代码块
+      .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-3 rounded text-sm overflow-x-auto my-3"><code>$1</code></pre>')
+      // 处理行内代码
+      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>')
+      // 处理链接
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+      // 处理列表
+      .replace(/^\* (.*$)/gim, '<li class="ml-4">$1</li>')
+      .replace(/^- (.*$)/gim, '<li class="ml-4">$1</li>')
+      // 处理换行
+      .replace(/\n\n/g, '</p><p class="mb-3">')
+      .replace(/\n/g, '<br>')
+      // 包装段落
+      .replace(/^(.*)$/gm, '<p class="mb-3">$1</p>')
+      // 清理空段落
+      .replace(/<p class="mb-3"><\/p>/g, '')
+      .replace(/<p class="mb-3"><br><\/p>/g, '');
+  };
+
+  // JSON格式化函数
+  const formatJSON = (content: string) => {
+    try {
+      const parsed = JSON.parse(content);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return content;
+    }
+  };
+
+  // CSV转表格函数
+  const csvToTable = (content: string) => {
+    const lines = content.trim().split('\n');
+    if (lines.length === 0) return content;
+
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const rows = lines.slice(1).map(line => 
+      line.split(',').map(cell => cell.trim().replace(/"/g, ''))
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300">
+          <thead>
+            <tr className="bg-gray-50">
+              {headers.map((header, index) => (
+                <th key={index} className="px-4 py-2 border border-gray-300 text-left text-sm font-medium text-gray-900">
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIndex) => (
+              <tr key={rowIndex} className="hover:bg-gray-50">
+                {row.map((cell, cellIndex) => (
+                  <td key={cellIndex} className="px-4 py-2 border border-gray-300 text-sm text-gray-700">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // 代码高亮函数
+  const highlightCode = (code: string, language: string) => {
+    try {
+      const highlighted = Prism.highlight(code, Prism.languages[language] || Prism.languages.text, language);
+      return highlighted;
+    } catch {
+      return code;
+    }
+  };
+
+  // 根据预览类型渲染内容
+  if (previewType === 'image') {
+    return (
+      <div className="flex justify-center">
+        <img 
+          src={content} 
+          alt={fileName} 
+          className="max-w-full h-auto rounded-lg shadow-lg"
+          style={{ maxHeight: '70vh' }}
+        />
+      </div>
+    );
+  }
+
+  if (previewType === 'pdf') {
+    return (
+      <div className="w-full h-full">
+        <iframe
+          src={content}
+          className="w-full h-full min-h-[600px] border-0 rounded-lg"
+          title={fileName}
+        />
+      </div>
+    );
+  }
+
+  if (previewType === 'powerpoint') {
+    try {
+      // 将base64转换回ArrayBuffer
+      const binaryString = atob(content);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      // 创建blob URL用于预览
+      const blob = new Blob([bytes], { 
+        type: fileExtension === 'pptx' ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation' : 'application/vnd.ms-powerpoint' 
+      });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      return (
+        <div className="bg-white rounded-lg">
+          <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
+            <div className="flex items-center space-x-2">
+              <Presentation className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">
+                PowerPoint 预览 - {fileName}
+              </span>
+            </div>
+          </div>
+          
+          <div className="w-full h-full min-h-[600px]">
+            <iframe
+              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(blobUrl)}`}
+              className="w-full h-full border-0 rounded-lg"
+              title={fileName}
+              sandbox="allow-scripts allow-same-origin allow-forms"
+            />
+          </div>
+        </div>
+      );
+    } catch (error) {
+      return (
+        <div className="text-center py-16">
+          <Presentation className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            PowerPoint 文件预览失败
+          </h3>
+          <p className="text-gray-500 mb-6">
+            无法预览此 PowerPoint 文件，请尝试下载后查看。
+          </p>
+        </div>
+      );
+    }
+  }
+
+  if (previewType === 'html' && (fileExtension === 'doc' || fileExtension === 'docx')) {
+    return (
+      <div className="prose max-w-none">
+        <div 
+          className="word-content text-gray-700 leading-relaxed bg-white p-6 rounded-lg border"
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      </div>
+    );
+  }
+
+  if (previewType === 'excel') {
+    if (sheets.length === 0) {
+      return (
+        <div className="text-center py-16">
+          <FileSpreadsheet className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            加载Excel文件失败
+          </h3>
+          <p className="text-gray-500">无法解析Excel文件内容</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-lg">
+        {/* Sheet页切换 */}
+        <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
+          <div className="flex items-center space-x-2">
+            <FileSpreadsheet className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">工作表:</span>
+            <div className="flex space-x-1">
+              {sheets.map((sheet, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSheetIndex(index)}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    currentSheetIndex === index
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                  }`}
+                >
+                  {sheet.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        {/* 表格内容 */}
+        <div className="overflow-x-auto">
+          <div 
+            dangerouslySetInnerHTML={{ __html: sheets[currentSheetIndex]?.data || '' }} 
+            className="min-w-full"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (previewType === 'html' && ['html', 'htm', 'mhtml'].includes(fileExtension)) {
+    return (
+      <div className="bg-white rounded-lg border">
+        <iframe
+          srcDoc={content}
+          className="w-full h-full min-h-[600px] border-0 rounded-lg"
+          title={fileName}
+          sandbox="allow-scripts allow-same-origin"
+        />
+      </div>
+    );
+  }
+
+  if (previewType === 'code') {
+    const language = getCodeLanguage(fileName);
+    const highlightedCode = highlightCode(content, language);
+    
+    return (
+      <div className="bg-gray-900 rounded-lg overflow-hidden">
+        <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
+          <div className="flex items-center space-x-2">
+            <FileCode className="h-4 w-4 text-gray-400" />
+            <span className="text-sm text-gray-300">{fileName}</span>
+            <span className="text-xs text-gray-500">({language})</span>
+          </div>
+        </div>
+        <pre className="p-4 m-0 overflow-x-auto">
+          <code 
+            className={`language-${language}`}
+            dangerouslySetInnerHTML={{ __html: highlightedCode }}
+          />
+        </pre>
+      </div>
+    );
+  }
+
+  if (previewType === 'text' && (fileExtension === 'md' || fileExtension === 'markdown')) {
+    return (
+      <div className="prose max-w-none">
+        <div 
+          className="markdown-content text-gray-700 leading-relaxed bg-white p-6 rounded-lg border"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+        />
+      </div>
+    );
+  }
+
+  if (previewType === 'text' && (fileExtension === 'json' || fileExtension === 'jsonl')) {
+    const formattedContent = fileExtension === 'json' ? formatJSON(content) : content;
+    const highlightedCode = highlightCode(formattedContent, 'json');
+    
+    return (
+      <div className="bg-gray-900 rounded-lg overflow-hidden">
+        <div className="bg-gray-800 px-4 py-2 border-b border-gray-700">
+          <div className="flex items-center space-x-2">
+            <FileCode className="h-4 w-4 text-gray-400" />
+            <span className="text-sm text-gray-300">{fileName}</span>
+            <span className="text-xs text-gray-500">(json)</span>
+          </div>
+        </div>
+        <pre className="p-4 m-0 overflow-x-auto">
+          <code 
+            className="language-json"
+            dangerouslySetInnerHTML={{ __html: highlightedCode }}
+          />
+        </pre>
+      </div>
+    );
+  }
+
+  if (previewType === 'text' && (fileExtension === 'csv' || fileExtension === 'tsv')) {
+    return (
+      <div className="bg-white rounded-lg">
+        {csvToTable(content)}
+      </div>
+    );
+  }
+
+  if (previewType === 'text' && (contentType.startsWith('text/') || ['txt', 'log'].includes(fileExtension))) {
+    return (
+      <div className="bg-gray-50 rounded-lg p-4">
+        <pre className="text-sm text-gray-800 overflow-x-auto whitespace-pre-wrap">
+          {content}
+        </pre>
+      </div>
+    );
+  }
+
+  // 默认文本显示
+  return (
+    <div className="bg-gray-50 rounded-lg p-4">
+      <pre className="text-sm text-gray-800 overflow-x-auto whitespace-pre-wrap">
+        {content}
+      </pre>
+    </div>
+  );
+}
+
+// 文件预览弹窗组件
+function PreviewModal({
+  visible,
+  onCancel,
+  file,
+  content,
+  loading,
+  previewType,
+  onDownload,
+  onPrevious,
+  onNext,
+}: {
+  visible: boolean;
+  onCancel: () => void;
+  file: DatasetFile;
+  content: string | null;
+  loading: boolean;
+  previewType: 'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint';
+  onDownload: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  // 格式化文件大小
+  const FormatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // 格式化时间
+  const FormatTime = (timeString?: string) => {
+    if (!timeString) return '-';
+    return new Date(timeString).toLocaleString('zh-CN');
+  };
+  if (!visible) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-4xl h-full max-h-full flex flex-col">
+        <div className="p-6 flex justify-between items-center border-b">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900">
+              预览文件: {file.originalName || file.fileName}
+            </h3>
+            <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
+              <span>类型: {file.contentType || '未知'}</span>
+              <span>大小: {FormatFileSize(file.fileSize || 0)}</span>
+              <span>上传时间: {FormatTime(file.createTime)}</span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {/* 文件切换按钮 */}
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={onPrevious}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="上一个文件"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={onNext}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                title="下一个文件"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <button
+              onClick={onDownload}
+              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              下载
+            </button>
+            <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+            </div>
+          ) : content ? (
+            <FilePreviewContent file={file} content={content} previewType={previewType} />
+          ) : (
+            <div className="text-center py-16">
+              <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                无法预览此文件
+              </h3>
+              <p className="text-gray-500 mb-6">
+                此文件类型不支持直接预览，请尝试下载后查看。
+              </p>
+                             <button
+                 onClick={onDownload}
+                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+               >
+                 <Download className="h-4 w-4 mr-2" />
+                 下载文件
+               </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
