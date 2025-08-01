@@ -160,6 +160,24 @@ export const datasetApi = {
   },
 
   /**
+   * 获取数据集README文件内容
+   */
+  async GetDatasetReadme(datasetId: number): Promise<ApiResponse<{
+    hasReadmeFile: boolean;
+    readmeContent: string;
+    readmeFileName?: string;
+    readmeFileSize?: number;
+    readmeFileId?: number;
+    fallbackReason?: string;
+    datasetName: string;
+    datasetType: string;
+    datasetDescription?: string;
+  }>> {
+    const { data } = await datasetApiClient.get(`/datasets/${datasetId}/readme`);
+    return data;
+  },
+
+  /**
    * 删除文件
    */
   async DeleteFile(fileId: number): Promise<ApiResponse<void>> {

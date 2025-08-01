@@ -420,16 +420,24 @@ export interface DataProcessingTask {
   name: string;
   description?: string;
   datasetId: string;
-  processingType: string;
+  datasetName?: string;
+  processingType: ProcessingType;
+  config: ProcessingConfig;
   inputPath: string;
   outputPath: string;
-  status: TaskStatus;
+  status: ProcessingStatus;
   progress: number;
   startTime?: string;
   endTime?: string;
   errorMessage?: string;
   createdTime: string;
   createdBy: string;
+  updatedTime?: string;
+  fileSize?: number;
+  recordCount?: number;
+  processingTime?: number;
+  outputFormat?: OutputFormat;
+  tags?: string[];
 }
 
 // 用户信息类型
@@ -489,4 +497,384 @@ export interface SystemStats {
   completedTasks: number;
   storageUsage: number;
   storageTotal: number;
+} 
+
+// 数据处理相关类型定义
+export enum ProcessingType {
+  CLEANING = "CLEANING",           // 数据清洗
+  FILTERING = "FILTERING",         // 数据过滤
+  DEDUPLICATION = "DEDUPLICATION", // 数据去重
+  PRIVACY_REMOVAL = "PRIVACY_REMOVAL", // 隐私信息移除
+  FORMAT_CONVERSION = "FORMAT_CONVERSION", // 格式转换
+  NORMALIZATION = "NORMALIZATION", // 数据标准化
+  ENRICHMENT = "ENRICHMENT",       // 数据增强
+  VALIDATION = "VALIDATION",       // 数据验证
+  TRANSFORMATION = "TRANSFORMATION", // 数据转换
+  SAMPLING = "SAMPLING",           // 数据采样
+  MERGING = "MERGING",             // 数据合并
+  SPLITTING = "SPLITTING",         // 数据分割
+  AGGREGATION = "AGGREGATION",     // 数据聚合
+  FEATURE_EXTRACTION = "FEATURE_EXTRACTION", // 特征提取
+  ANONYMIZATION = "ANONYMIZATION", // 数据匿名化
+  ENCRYPTION = "ENCRYPTION",       // 数据加密
+  COMPRESSION = "COMPRESSION",     // 数据压缩
+  EXPORT = "EXPORT",               // 数据导出
+}
+
+export enum ProcessingStatus {
+  PENDING = "PENDING",             // 等待中
+  RUNNING = "RUNNING",             // 运行中
+  SUCCESS = "SUCCESS",             // 成功
+  FAILED = "FAILED",               // 失败
+  CANCELLED = "CANCELLED",         // 已取消
+  PAUSED = "PAUSED",               // 已暂停
+}
+
+export enum OutputFormat {
+  JSON = "JSON",
+  JSONL = "JSONL",
+  CSV = "CSV",
+  EXCEL = "EXCEL",
+  PARQUET = "PARQUET",
+  XML = "XML",
+  YAML = "YAML",
+  TXT = "TXT",
+  MARKDOWN = "MARKDOWN",
+  HTML = "HTML",
+  PDF = "PDF",
+}
+
+export enum KnowledgeBaseFormat {
+  QA_PAIR = "QA_PAIR",             // 问答对格式
+  DOCUMENT = "DOCUMENT",           // 文档格式
+  CHUNK = "CHUNK",                 // 分块格式
+  EMBEDDING = "EMBEDDING",         // 向量格式
+  GRAPH = "GRAPH",                 // 图谱格式
+}
+
+export enum TrainingFormat {
+  INSTRUCTION = "INSTRUCTION",     // 指令微调格式
+  CONVERSATION = "CONVERSATION",   // 对话格式
+  COMPLETION = "COMPLETION",       // 补全格式
+  CLASSIFICATION = "CLASSIFICATION", // 分类格式
+  GENERATION = "GENERATION",       // 生成格式
+}
+
+// 数据处理配置
+export interface ProcessingConfig {
+  // 通用配置
+  outputFormat: OutputFormat;
+  encoding?: string;
+  delimiter?: string;
+  includeHeader?: boolean;
+  
+  // 清洗配置
+  cleaning?: {
+    removeNulls?: boolean;
+    removeDuplicates?: boolean;
+    trimWhitespace?: boolean;
+    normalizeCase?: boolean;
+    fixEncoding?: boolean;
+    removeSpecialChars?: boolean;
+    replacePatterns?: Array<{
+      pattern: string;
+      replacement: string;
+      regex?: boolean;
+    }>;
+  };
+  
+  // 过滤配置
+  filtering?: {
+    conditions: Array<{
+      field: string;
+      operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'greater_than' | 'less_than' | 'between' | 'in' | 'not_in' | 'is_null' | 'is_not_null';
+      value: any;
+      value2?: any; // 用于between操作
+    }>;
+    logic?: 'AND' | 'OR';
+  };
+  
+  // 去重配置
+  deduplication?: {
+    fields: string[];
+    keepFirst?: boolean;
+    caseSensitive?: boolean;
+    fuzzyMatch?: boolean;
+    similarityThreshold?: number;
+  };
+  
+  // 隐私移除配置
+  privacyRemoval?: {
+    fields: string[];
+    patterns: Array<{
+      pattern: string;
+      replacement: string;
+      regex?: boolean;
+    }>;
+    hashFields?: string[];
+    maskFields?: string[];
+    anonymizeFields?: string[];
+  };
+  
+  // 格式转换配置
+  formatConversion?: {
+    dateFormats?: Record<string, string>;
+    numberFormats?: Record<string, string>;
+    booleanFormats?: Record<string, boolean>;
+    customMappings?: Record<string, any>;
+  };
+  
+  // 标准化配置
+  normalization?: {
+    textNormalization?: boolean;
+    numberNormalization?: boolean;
+    dateNormalization?: boolean;
+    unitConversion?: Record<string, string>;
+  };
+  
+  // 数据增强配置
+  enrichment?: {
+    addFields?: Record<string, any>;
+    calculateFields?: Array<{
+      name: string;
+      expression: string;
+      type: string;
+    }>;
+    joinData?: Array<{
+      source: string;
+      joinKey: string;
+      fields: string[];
+    }>;
+  };
+  
+  // 验证配置
+  validation?: {
+    rules: Array<{
+      field: string;
+      rule: string;
+      message?: string;
+      params?: any;
+    }>;
+    strictMode?: boolean;
+  };
+  
+  // 转换配置
+  transformation?: {
+    renameFields?: Record<string, string>;
+    selectFields?: string[];
+    excludeFields?: string[];
+    sortBy?: Array<{
+      field: string;
+      order: 'asc' | 'desc';
+    }>;
+    limit?: number;
+    offset?: number;
+  };
+  
+  // 采样配置
+  sampling?: {
+    method: 'random' | 'systematic' | 'stratified' | 'cluster';
+    size: number;
+    percentage?: number;
+    seed?: number;
+    strata?: Record<string, any>;
+  };
+  
+  // 合并配置
+  merging?: {
+    datasets: string[];
+    joinType: 'inner' | 'left' | 'right' | 'outer';
+    joinKeys: string[];
+    conflictResolution?: 'first' | 'last' | 'merge' | 'custom';
+  };
+  
+  // 分割配置
+  splitting?: {
+    method: 'random' | 'stratified' | 'time' | 'custom';
+    ratios: number[];
+    field?: string;
+    seed?: number;
+  };
+  
+  // 聚合配置
+  aggregation?: {
+    groupBy: string[];
+    aggregations: Array<{
+      field: string;
+      function: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'std' | 'var';
+      alias?: string;
+    }>;
+  };
+  
+  // 特征提取配置
+  featureExtraction?: {
+    textFeatures?: {
+      extractKeywords?: boolean;
+      extractEntities?: boolean;
+      extractSentiment?: boolean;
+      extractTopics?: boolean;
+      language?: string;
+    };
+    imageFeatures?: {
+      extractColors?: boolean;
+      extractObjects?: boolean;
+      extractFaces?: boolean;
+      extractText?: boolean;
+    };
+    audioFeatures?: {
+      extractMFCC?: boolean;
+      extractSpectrogram?: boolean;
+      extractPitch?: boolean;
+    };
+  };
+  
+  // 匿名化配置
+  anonymization?: {
+    method: 'k_anonymity' | 'l_diversity' | 't_closeness' | 'differential_privacy';
+    k?: number;
+    l?: number;
+    t?: number;
+    epsilon?: number;
+    sensitiveFields: string[];
+    quasiIdentifiers: string[];
+  };
+  
+  // 加密配置
+  encryption?: {
+    algorithm: 'AES' | 'RSA' | 'DES' | '3DES';
+    key?: string;
+    fields: string[];
+    mode?: 'encrypt' | 'decrypt';
+  };
+  
+  // 压缩配置
+  compression?: {
+    algorithm: 'gzip' | 'bzip2' | 'lz4' | 'snappy';
+    level?: number;
+  };
+  
+  // 知识库格式配置
+  knowledgeBase?: {
+    format: KnowledgeBaseFormat;
+    chunkSize?: number;
+    overlap?: number;
+    metadata?: Record<string, any>;
+    qaTemplate?: {
+      questionField: string;
+      answerField: string;
+      contextField?: string;
+    };
+  };
+  
+  // 训练格式配置
+  training?: {
+    format: TrainingFormat;
+    instructionTemplate?: string;
+    conversationTemplate?: {
+      system: string;
+      user: string;
+      assistant: string;
+    };
+    completionTemplate?: string;
+    classificationLabels?: string[];
+  };
+}
+
+
+
+// 数据处理历史
+export interface ProcessingHistory {
+  id: string;
+  taskId: string;
+  taskName: string;
+  datasetId: string;
+  datasetName: string;
+  processingType: ProcessingType;
+  status: ProcessingStatus;
+  progress: number;
+  startTime: string;
+  endTime?: string;
+  duration?: number;
+  fileSize?: number;
+  recordCount?: number;
+  createdBy: string;
+  outputPath?: string;
+  errorMessage?: string;
+}
+
+// 数据处理模板
+export interface ProcessingTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  processingType: ProcessingType;
+  config: ProcessingConfig;
+  isPublic: boolean;
+  createdBy: string;
+  createdTime: string;
+  updatedTime?: string;
+  usageCount: number;
+  tags?: string[];
+}
+
+// 数据处理统计
+export interface ProcessingStats {
+  totalTasks: number;
+  runningTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  totalProcessingTime: number;
+  totalRecordsProcessed: number;
+  totalFileSize: number;
+  byType: Record<ProcessingType, number>;
+  byStatus: Record<ProcessingStatus, number>;
+  byFormat: Record<OutputFormat, number>;
+  recentTasks: DataProcessingTask[];
+}
+
+// 数据处理预览
+export interface ProcessingPreview {
+  totalRecords: number;
+  sampleRecords: any[];
+  fieldInfo: Array<{
+    name: string;
+    type: string;
+    nullCount: number;
+    uniqueCount: number;
+    sampleValues: any[];
+  }>;
+  qualityMetrics: {
+    completeness: number;
+    accuracy: number;
+    consistency: number;
+    timeliness: number;
+    validity: number;
+  };
+  estimatedOutputSize: number;
+  estimatedProcessingTime: number;
+}
+
+// 数据处理结果
+export interface ProcessingResult {
+  taskId: string;
+  outputPath: string;
+  outputFormat: OutputFormat;
+  recordCount: number;
+  fileSize: number;
+  processingTime: number;
+  qualityReport?: {
+    completeness: number;
+    accuracy: number;
+    consistency: number;
+    timeliness: number;
+    validity: number;
+    issues: Array<{
+      type: string;
+      count: number;
+      description: string;
+    }>;
+  };
+  metadata?: Record<string, any>;
+  downloadUrl?: string;
+  previewUrl?: string;
 } 

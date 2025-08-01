@@ -59,6 +59,8 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
   const [previewData, setPreviewData] = useState<any>(null);
   const [currentDataset, setCurrentDataset] = useState<Dataset>(dataset);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [readmeData, setReadmeData] = useState<any>(null);
+  const [readmeLoading, setReadmeLoading] = useState(false);
   const { toasts, showSuccess, showError, removeToast } = useToast();
 
   // 数据集类型配置
@@ -89,6 +91,38 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
   const FormatTime = (timeString?: string) => {
     if (!timeString) return '-';
     return new Date(timeString).toLocaleString('zh-CN');
+  };
+
+  // 简单的Markdown渲染函数
+  const renderMarkdown = (content: string) => {
+    if (!content) return '';
+    
+    return content
+      // 处理标题
+      .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold text-gray-900 mt-6 mb-3">$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-gray-900 mt-8 mb-4">$1</h1>')
+      // 处理粗体
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+      // 处理斜体
+      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+      // 处理代码块
+      .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-3 rounded text-sm overflow-x-auto my-3"><code>$1</code></pre>')
+      // 处理行内代码
+      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>')
+      // 处理链接
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+      // 处理列表
+      .replace(/^\* (.*$)/gim, '<li class="ml-4">$1</li>')
+      .replace(/^- (.*$)/gim, '<li class="ml-4">$1</li>')
+      // 处理换行
+      .replace(/\n\n/g, '</p><p class="mb-3">')
+      .replace(/\n/g, '<br>')
+      // 包装段落
+      .replace(/^(.*)$/gm, '<p class="mb-3">$1</p>')
+      // 清理空段落
+      .replace(/<p class="mb-3"><\/p>/g, '')
+      .replace(/<p class="mb-3"><br><\/p>/g, '');
   };
 
   const TypeIcon = datasetTypeConfig[currentDataset.type as DatasetType]?.icon || Database;
@@ -239,6 +273,34 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
     }
   };
 
+  // 加载README数据
+  const loadReadmeData = async () => {
+    if (readmeData) return; // 如果已经加载过，不再重复加载
+    
+    setReadmeLoading(true);
+    try {
+      const response = await datasetApi.GetDatasetReadme(Number(currentDataset.id));
+      setReadmeData(response.data);
+    } catch (error: any) {
+      console.error('加载README数据失败:', error);
+      // 如果API失败，使用数据集描述作为fallback
+      setReadmeData({
+        hasReadmeFile: false,
+        readmeContent: currentDataset.description || '暂无描述',
+        fallbackReason: '加载README数据失败'
+      });
+    } finally {
+      setReadmeLoading(false);
+    }
+  };
+
+  // 当切换到README标签页时加载数据
+  React.useEffect(() => {
+    if (activeTab === 'readme') {
+      loadReadmeData();
+    }
+  }, [activeTab, currentDataset.id]);
+
   return (
     <div className="space-y-6">
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
@@ -386,10 +448,50 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
               {/* README内容 */}
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">数据集详情</h2>
-                {currentDataset.description ? (
-                  <div className="prose max-w-none">
-                    <div className="text-gray-700 whitespace-pre-wrap leading-relaxed bg-gray-50 p-6 rounded-lg">
-                      {currentDataset.description}
+                {readmeLoading ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <Loader2 className="h-8 w-8 text-gray-400 mx-auto mb-4 animate-spin" />
+                    <p className="text-gray-500">正在加载README内容...</p>
+                  </div>
+                ) : readmeData ? (
+                  <div className="space-y-4">
+                    {/* README文件信息 */}
+                    {readmeData.hasReadmeFile && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-5 w-5 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-800">
+                            显示README文件: {readmeData.readmeFileName}
+                          </span>
+                          {readmeData.readmeFileSize && (
+                            <span className="text-xs text-blue-600">
+                              ({FormatFileSize(readmeData.readmeFileSize)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Fallback提示 */}
+                    {!readmeData.hasReadmeFile && readmeData.fallbackReason && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center space-x-2">
+                          <FileText className="h-5 w-5 text-yellow-600" />
+                          <span className="text-sm text-yellow-800">
+                            {readmeData.fallbackReason}，显示数据集描述
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* README内容 */}
+                    <div className="prose max-w-none">
+                      <div className="text-gray-700 leading-relaxed bg-gray-50 p-6 rounded-lg">
+                        <div 
+                          className="markdown-content text-sm"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(readmeData.readmeContent) }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
