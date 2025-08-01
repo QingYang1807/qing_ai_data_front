@@ -94,7 +94,7 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
   const [previewFile, setPreviewFile] = useState<DatasetFile | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
-  const [previewType, setPreviewType] = useState<'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint'>('text');
+  const [previewType, setPreviewType] = useState<'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint' | 'audio' | 'video'>('text');
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [searchKeyword, setSearchKeyword] = useState('');
   const { toasts, showError, removeToast } = useToast();
@@ -246,6 +246,18 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
       else if (contentType.includes('pdf') || fileExtension === 'pdf') {
         setPreviewContent(downloadUrl);
         setPreviewType('pdf');
+      }
+      // 音频文件
+      else if (contentType.startsWith('audio/') || 
+               ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma'].includes(fileExtension)) {
+        setPreviewContent(downloadUrl);
+        setPreviewType('audio');
+      }
+      // 视频文件
+      else if (contentType.startsWith('video/') || 
+               ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v'].includes(fileExtension)) {
+        setPreviewContent(downloadUrl);
+        setPreviewType('video');
       }
       // 其他文件类型
       else {
@@ -866,7 +878,7 @@ function FilePreviewContent({
 }: { 
   file: DatasetFile; 
   content: string; 
-  previewType: 'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint';
+  previewType: 'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint' | 'audio' | 'video';
 }) {
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
   const [sheets, setSheets] = useState<Array<{name: string, data: string}>>([]);
@@ -1196,6 +1208,64 @@ function FilePreviewContent({
     );
   }
 
+  if (previewType === 'audio') {
+    return (
+      <div className="bg-white rounded-lg border p-6">
+        <div className="text-center">
+          <div className="mb-4">
+            <Music className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+            <h3 className="text-lg font-medium text-gray-900 mb-1">
+              {fileName}
+            </h3>
+            <p className="text-sm text-gray-500">
+              音频文件预览
+            </p>
+          </div>
+          <audio
+            controls
+            className="w-full max-w-md mx-auto"
+            preload="metadata"
+          >
+            <source src={content} type={contentType} />
+            您的浏览器不支持音频播放。
+          </audio>
+          <div className="mt-4 text-sm text-gray-500">
+            <p>支持格式: MP3, WAV, OGG, M4A, FLAC, AAC, WMA</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (previewType === 'video') {
+    return (
+      <div className="bg-white rounded-lg border">
+        <div className="p-4 border-b bg-gray-50">
+          <div className="flex items-center space-x-2">
+            <Video className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">
+              {fileName}
+            </span>
+          </div>
+        </div>
+        <div className="p-4">
+          <video
+            controls
+            className="w-full max-w-3xl mx-auto rounded-lg"
+            preload="metadata"
+            style={{ maxHeight: '70vh' }}
+          >
+            <source src={content} type={contentType} />
+            您的浏览器不支持视频播放。
+          </video>
+          <div className="mt-4 text-sm text-gray-500 text-center">
+            <p>支持格式: MP4, AVI, MOV, WMV, FLV, WebM, MKV, M4V</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (previewType === 'text' && (contentType.startsWith('text/') || ['txt', 'log'].includes(fileExtension))) {
     return (
       <div className="bg-gray-50 rounded-lg p-4">
@@ -1233,7 +1303,7 @@ function PreviewModal({
   file: DatasetFile;
   content: string | null;
   loading: boolean;
-  previewType: 'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint';
+  previewType: 'text' | 'html' | 'image' | 'pdf' | 'office' | 'code' | 'excel' | 'powerpoint' | 'audio' | 'video';
   onDownload: () => void;
   onPrevious: () => void;
   onNext: () => void;
