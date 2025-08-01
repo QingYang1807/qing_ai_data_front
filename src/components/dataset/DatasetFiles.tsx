@@ -498,10 +498,10 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left">
+                    <th className="px-6 py-3 text-left w-12">
                       <input
                         type="checkbox"
                         checked={selectedFiles.length === files.length && files.length > 0}
@@ -509,19 +509,19 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-88">
                       文件名
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       类型
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                       大小
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                       状态
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                       上传时间
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -548,7 +548,10 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <FileIcon className="h-5 w-5 text-gray-400 mr-3" />
-                            <div>
+                            <div
+                             className="truncate overflow-hidden whitespace-nowrap"
+                             title={file.originalName || file.fileName}
+                            >
                               <div className="text-sm font-medium text-gray-900">
                                 {file.originalName || file.fileName}
                               </div>
@@ -559,7 +562,11 @@ export default function DatasetFiles({ dataset }: DatasetFilesProps) {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {file.contentType || '-'}
+                          <div className="truncate overflow-hidden whitespace-nowrap"
+                          title={file.contentType || '-'}
+                          >
+                            {file.contentType || '-'}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {FormatFileSize(file.fileSize || 0)}
