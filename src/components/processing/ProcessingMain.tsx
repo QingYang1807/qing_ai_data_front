@@ -23,7 +23,8 @@ export default function ProcessingMain({ selectedDataset, onBackToDataset }: Pro
   const { showSuccess, showError } = useToast();
 
   const handleCreateTask = () => {
-    setActiveView('create');
+    // 创建任务现在通过弹窗处理，不需要切换视图
+    // 这个函数保留是为了接口兼容性
   };
 
   const handleViewTask = (taskId: string) => {
@@ -117,77 +118,82 @@ export default function ProcessingMain({ selectedDataset, onBackToDataset }: Pro
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 顶部导航 */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-semibold text-gray-900">数据处理</h1>
-              <nav className="flex space-x-8">
-                <button
-                  onClick={() => setActiveView('tasks')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeView === 'tasks'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  任务列表
-                </button>
-                <button
-                  onClick={() => setActiveView('stats')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeView === 'stats'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  处理统计
-                </button>
-                <button
-                  onClick={() => setActiveView('templates')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeView === 'templates'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  处理模板
-                </button>
-                <button
-                  onClick={() => setActiveView('history')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    activeView === 'history'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  处理历史
-                </button>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-4">
-              {activeView === 'tasks' && (
-                <button
-                  onClick={handleCreateTask}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  创建任务
-                </button>
-              )}
+    <div className="p-6 max-w-full mx-auto space-y-6 animate-fade-in">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-3">
+            <h1 className="text-3xl font-bold text-gray-900 text-shadow">数据处理</h1>
+            <div className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+              <span>服务已连接</span>
             </div>
           </div>
+          <p className="text-gray-600 mt-1">管理和执行数据处理任务</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          {activeView === 'tasks' && (
+            <button
+              onClick={handleCreateTask}
+              className="btn-glass-primary flex items-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>创建任务</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 主要内容区域 */}
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {renderActiveView()}
+      {/* Sub Navigation */}
+      <div className="glass-card p-4">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveView('tasks')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeView === 'tasks'
+                ? 'bg-blue-500/20 text-blue-700 border border-blue-300/30'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            任务列表
+          </button>
+          <button
+            onClick={() => setActiveView('stats')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeView === 'stats'
+                ? 'bg-blue-500/20 text-blue-700 border border-blue-300/30'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            处理统计
+          </button>
+          <button
+            onClick={() => setActiveView('templates')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeView === 'templates'
+                ? 'bg-blue-500/20 text-blue-700 border border-blue-300/30'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            处理模板
+          </button>
+          <button
+            onClick={() => setActiveView('history')}
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeView === 'history'
+                ? 'bg-blue-500/20 text-blue-700 border border-blue-300/30'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            处理历史
+          </button>
+        </nav>
       </div>
+
+      {/* 主要内容区域 */}
+      {renderActiveView()}
     </div>
   );
 } 

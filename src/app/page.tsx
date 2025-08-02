@@ -8,6 +8,7 @@ import DataSourceList from '@/components/datasource/DataSourceList';
 import DatasetList from '@/components/dataset/DatasetList';
 import DatasetForm from '@/components/dataset/DatasetForm';
 import DatasetDetailView from '@/components/dataset/DatasetDetailView';
+import ProcessingMain from '@/components/processing/ProcessingMain';
 import { Dataset } from '@/types';
 import { ToastContainer } from '@/components/common/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -171,14 +172,7 @@ export default function Home() {
           </div>
         );
       case 'processing':
-        return (
-          <div className="p-6 max-w-7xl mx-auto">
-            <div className="glass-card p-12 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">数据处理</h2>
-              <p className="text-gray-600">数据处理功能正在开发中...</p>
-            </div>
-          </div>
-        );
+        return <ProcessingMain />;
       case 'quality':
         return (
           <div className="p-6 max-w-7xl mx-auto">

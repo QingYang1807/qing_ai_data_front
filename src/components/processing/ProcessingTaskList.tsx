@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DataProcessingTask, ProcessingType, ProcessingStatus, Dataset } from '@/types';
 import { processingApi } from '@/api/processing';
 import { useToast } from '@/hooks/useToast';
+import ProcessingTaskForm from './ProcessingTaskForm';
 
 interface ProcessingTaskListProps {
   selectedDataset?: Dataset;
@@ -27,6 +28,7 @@ export default function ProcessingTaskList({
     processingType: '',
     search: ''
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -97,22 +99,39 @@ export default function ProcessingTaskList({
     }
   };
 
+  const handleTaskSuccess = () => {
+    showSuccess('任务创建成功', '数据处理任务已成功创建');
+    loadTasks();
+  };
+
+  const handleTaskError = (error: string) => {
+    showError('任务创建失败', error);
+  };
+
+  const handleCreateTask = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+  };
+
   const getStatusColor = (status: ProcessingStatus) => {
     switch (status) {
       case ProcessingStatus.PENDING:
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-500/10 text-yellow-700 border-yellow-200';
       case ProcessingStatus.RUNNING:
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500/10 text-blue-700 border-blue-200';
       case ProcessingStatus.SUCCESS:
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500/10 text-green-700 border-green-200';
       case ProcessingStatus.FAILED:
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/10 text-red-700 border-red-200';
       case ProcessingStatus.CANCELLED:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500/10 text-gray-700 border-gray-200';
       case ProcessingStatus.PAUSED:
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-orange-500/10 text-orange-700 border-orange-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500/10 text-gray-700 border-gray-200';
     }
   };
 
@@ -156,181 +175,202 @@ export default function ProcessingTaskList({
 
   return (
     <div className="space-y-6">
-      {/* 头部信息 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">数据处理任务</h2>
-            {selectedDataset && (
-              <p className="text-sm text-gray-600 mt-1">
-                当前数据集: {selectedDataset.name}
-                {onBackToDataset && (
-                  <button
-                    onClick={onBackToDataset}
-                    className="ml-2 text-blue-600 hover:text-blue-800 underline"
-                  >
-                    返回数据集
-                  </button>
-                )}
-              </p>
-            )}
-          </div>
-          <button
-            onClick={onCreateTask}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+      {/* 统计卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">总任务数</p>
+              <p className="text-2xl font-bold text-gray-900">{tasks.length}</p>
+            </div>
+            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            创建任务
-          </button>
+          </div>
+        </div>
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">运行中</p>
+              <p className="text-2xl font-bold text-blue-900">
+                {tasks.filter(task => task.status === ProcessingStatus.RUNNING).length}
+              </p>
+            </div>
+            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">已完成</p>
+              <p className="text-2xl font-bold text-green-900">
+                {tasks.filter(task => task.status === ProcessingStatus.SUCCESS).length}
+              </p>
+            </div>
+            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">失败任务</p>
+              <p className="text-2xl font-bold text-red-900">
+                {tasks.filter(task => task.status === ProcessingStatus.FAILED).length}
+              </p>
+            </div>
+            <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
         </div>
       </div>
 
       {/* 筛选器 */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">状态</label>
-            <select
-              value={filter.status}
-              onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">全部状态</option>
-              <option value={ProcessingStatus.PENDING}>等待中</option>
-              <option value={ProcessingStatus.RUNNING}>运行中</option>
-              <option value={ProcessingStatus.SUCCESS}>成功</option>
-              <option value={ProcessingStatus.FAILED}>失败</option>
-              <option value={ProcessingStatus.CANCELLED}>已取消</option>
-              <option value={ProcessingStatus.PAUSED}>已暂停</option>
-            </select>
+      <div className="glass-card p-4">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+          {/* 搜索 */}
+          <div className="flex-1 min-w-0">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="搜索任务名称或描述..."
+                value={filter.search}
+                onChange={(e) => setFilter(prev => ({ ...prev, search: e.target.value }))}
+                className="input-glass w-full pl-10 pr-4 py-2"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">处理类型</label>
-            <select
-              value={filter.processingType}
-              onChange={(e) => setFilter(prev => ({ ...prev, processingType: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">全部类型</option>
-              <option value={ProcessingType.CLEANING}>数据清洗</option>
-              <option value={ProcessingType.FILTERING}>数据过滤</option>
-              <option value={ProcessingType.DEDUPLICATION}>数据去重</option>
-              <option value={ProcessingType.PRIVACY_REMOVAL}>隐私移除</option>
-              <option value={ProcessingType.FORMAT_CONVERSION}>格式转换</option>
-              <option value={ProcessingType.NORMALIZATION}>数据标准化</option>
-              <option value={ProcessingType.ENRICHMENT}>数据增强</option>
-              <option value={ProcessingType.VALIDATION}>数据验证</option>
-              <option value={ProcessingType.TRANSFORMATION}>数据转换</option>
-              <option value={ProcessingType.SAMPLING}>数据采样</option>
-              <option value={ProcessingType.MERGING}>数据合并</option>
-              <option value={ProcessingType.SPLITTING}>数据分割</option>
-              <option value={ProcessingType.AGGREGATION}>数据聚合</option>
-              <option value={ProcessingType.FEATURE_EXTRACTION}>特征提取</option>
-              <option value={ProcessingType.ANONYMIZATION}>数据匿名化</option>
-              <option value={ProcessingType.ENCRYPTION}>数据加密</option>
-              <option value={ProcessingType.COMPRESSION}>数据压缩</option>
-              <option value={ProcessingType.EXPORT}>数据导出</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">搜索</label>
-            <input
-              type="text"
-              placeholder="搜索任务名称..."
-              value={filter.search}
-              onChange={(e) => setFilter(prev => ({ ...prev, search: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={loadTasks}
-              className="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
-            >
-              刷新
-            </button>
+
+          {/* 快速筛选 */}
+          <div className="flex flex-wrap gap-2 lg:gap-4">
+            {/* 状态筛选 */}
+            <div className="sm:w-48">
+              <select
+                value={filter.status}
+                onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value }))}
+                className="input-glass w-full py-2 px-3 text-sm"
+              >
+                <option value="">全部状态</option>
+                <option value={ProcessingStatus.PENDING}>等待中</option>
+                <option value={ProcessingStatus.RUNNING}>运行中</option>
+                <option value={ProcessingStatus.SUCCESS}>成功</option>
+                <option value={ProcessingStatus.FAILED}>失败</option>
+                <option value={ProcessingStatus.CANCELLED}>已取消</option>
+                <option value={ProcessingStatus.PAUSED}>已暂停</option>
+              </select>
+            </div>
+
+            {/* 处理类型筛选 */}
+            <div className="sm:w-48">
+              <select
+                value={filter.processingType}
+                onChange={(e) => setFilter(prev => ({ ...prev, processingType: e.target.value }))}
+                className="input-glass w-full py-2 px-3 text-sm"
+              >
+                <option value="">全部类型</option>
+                <option value={ProcessingType.CLEANING}>数据清洗</option>
+                <option value={ProcessingType.FILTERING}>数据过滤</option>
+                <option value={ProcessingType.DEDUPLICATION}>数据去重</option>
+                <option value={ProcessingType.PRIVACY_REMOVAL}>隐私移除</option>
+                <option value={ProcessingType.FORMAT_CONVERSION}>格式转换</option>
+                <option value={ProcessingType.NORMALIZATION}>数据标准化</option>
+                <option value={ProcessingType.ENRICHMENT}>数据增强</option>
+                <option value={ProcessingType.VALIDATION}>数据验证</option>
+                <option value={ProcessingType.TRANSFORMATION}>数据转换</option>
+                <option value={ProcessingType.SAMPLING}>数据采样</option>
+                <option value={ProcessingType.MERGING}>数据合并</option>
+                <option value={ProcessingType.SPLITTING}>数据分割</option>
+                <option value={ProcessingType.AGGREGATION}>数据聚合</option>
+                <option value={ProcessingType.FEATURE_EXTRACTION}>特征提取</option>
+                <option value={ProcessingType.ANONYMIZATION}>数据匿名化</option>
+                <option value={ProcessingType.ENCRYPTION}>数据加密</option>
+                <option value={ProcessingType.COMPRESSION}>数据压缩</option>
+                <option value={ProcessingType.EXPORT}>数据导出</option>
+              </select>
+            </div>
+
+            {/* 刷新按钮 */}
+            <div>
+              <button
+                onClick={loadTasks}
+                className="btn-glass-secondary w-full"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                刷新
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 任务列表 */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Task List */}
+      <div className="glass-card overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">加载中...</p>
+          <div className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">加载中...</p>
           </div>
         ) : tasks.length === 0 ? (
-          <div className="p-8 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="p-12 text-center">
+            <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">暂无任务</h3>
-            <p className="mt-1 text-sm text-gray-500">开始创建您的第一个数据处理任务</p>
-            <div className="mt-6">
-              <button
-                onClick={onCreateTask}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                创建任务
-              </button>
-            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">暂无任务</h3>
+            <p className="text-gray-500 mb-4">开始创建您的第一个数据处理任务</p>
+            <button
+              onClick={onCreateTask}
+              className="btn-glass-primary"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              创建任务
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    任务名称
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    处理类型
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    状态
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    进度
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    文件大小
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    创建时间
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
+            <table className="w-full">
+                <thead>
+                  <tr className="border-b border-glass-200 bg-glass-100">
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">任务名称</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">处理类型</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">状态</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">进度</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">文件大小</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">创建时间</th>
+                    <th className="text-center py-4 px-6 font-medium text-gray-700">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tasks.map((task) => (
+                    <tr key={task.id} className="border-b border-glass-100 hover:bg-glass-50 transition-colors duration-200">
+                    <td className="py-4 px-6">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600" onClick={() => onViewTask(task.id)}>
+                          <h4 className="font-medium text-gray-900 cursor-pointer hover:text-blue-600" onClick={() => onViewTask(task.id)}>
                             {task.name}
-                          </div>
+                          </h4>
                           {task.description && (
-                            <div className="text-sm text-gray-500">{task.description}</div>
+                            <p className="text-sm text-gray-500 mt-1">{task.description}</p>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">
+                      </td>
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-blue-500/10 text-blue-700 border-blue-200">
                         {getProcessingTypeLabel(task.processingType)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(task.status)}`}>
+                    <td className="py-4 px-6">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
                         {task.status === ProcessingStatus.PENDING && '等待中'}
                         {task.status === ProcessingStatus.RUNNING && '运行中'}
                         {task.status === ProcessingStatus.SUCCESS && '成功'}
@@ -356,35 +396,50 @@ export default function ProcessingTaskList({
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {new Date(task.createdTime).toLocaleString('zh-CN')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center space-x-2">
                         <button
                           onClick={() => onViewTask(task.id)}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                          title="查看"
                         >
-                          查看
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
                         </button>
                         {task.status === ProcessingStatus.PENDING && (
                           <button
                             onClick={() => handleStartTask(task.id)}
-                            className="text-green-600 hover:text-green-900"
+                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200"
+                            title="启动"
                           >
-                            启动
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                           </button>
                         )}
                         {task.status === ProcessingStatus.RUNNING && (
                           <button
                             onClick={() => handleStopTask(task.id)}
-                            className="text-orange-600 hover:text-orange-900"
+                            className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors duration-200"
+                            title="停止"
                           >
-                            停止
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                            </svg>
                           </button>
                         )}
                         <button
                           onClick={() => handleDeleteTask(task.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                          title="删除"
                         >
-                          删除
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                         </button>
                       </div>
                     </td>
@@ -395,6 +450,15 @@ export default function ProcessingTaskList({
           </div>
         )}
       </div>
+
+      {/* 创建任务弹窗 */}
+      <ProcessingTaskForm
+        visible={showCreateModal}
+        selectedDataset={selectedDataset}
+        onCancel={handleCloseCreateModal}
+        onSuccess={handleTaskSuccess}
+        onError={handleTaskError}
+      />
     </div>
   );
 } 

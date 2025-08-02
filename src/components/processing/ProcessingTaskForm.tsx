@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { X, Loader, Settings, AlertCircle } from 'lucide-react';
 import { ProcessingType, ProcessingConfig, OutputFormat, Dataset, KnowledgeBaseFormat, TrainingFormat } from '@/types';
 import { processingApi } from '@/api/processing';
 import { useToast } from '@/hooks/useToast';
 
 interface ProcessingTaskFormProps {
+  visible: boolean;
   selectedDataset?: Dataset;
   onCancel: () => void;
   onSuccess: () => void;
@@ -13,6 +15,7 @@ interface ProcessingTaskFormProps {
 }
 
 export default function ProcessingTaskForm({
+  visible,
   selectedDataset,
   onCancel,
   onSuccess,
@@ -34,13 +37,65 @@ export default function ProcessingTaskForm({
     uniqueCount: number;
     sampleValues: any[];
   }>>([]);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
-    if (selectedDataset?.id) {
-      loadDatasetFields();
+    if (visible) {
+      resetForm();
+      if (selectedDataset?.id) {
+        loadDatasetFields();
+      }
     }
-  }, [selectedDataset]);
+  }, [visible, selectedDataset]);
+
+  // ESC键关闭功能
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && visible) {
+        onCancel();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleEscapeKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [visible, onCancel]);
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      processingType: ProcessingType.CLEANING,
+      outputFormat: OutputFormat.JSON,
+      config: {} as ProcessingConfig
+    });
+    setStep(1);
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = '任务名称不能为空';
+    } else if (formData.name.length < 2) {
+      newErrors.name = '任务名称至少需要2个字符';
+    } else if (formData.name.length > 50) {
+      newErrors.name = '任务名称不能超过50个字符';
+    }
+
+    if (!selectedDataset?.id) {
+      newErrors.dataset = '请选择数据集';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const loadDatasetFields = async () => {
     if (!selectedDataset?.id) return;
@@ -58,6 +113,14 @@ export default function ProcessingTaskForm({
       ...prev,
       [field]: value
     }));
+    
+    // 清除对应字段的错误
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
   };
 
   const handleConfigChange = (config: Partial<ProcessingConfig>) => {
@@ -70,14 +133,10 @@ export default function ProcessingTaskForm({
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!formData.name.trim()) {
-      showError('验证失败', '请输入任务名称');
-      return;
-    }
-
-    if (!selectedDataset?.id) {
-      showError('验证失败', '请选择数据集');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
@@ -98,8 +157,10 @@ export default function ProcessingTaskForm({
       await processingApi.createTask(taskData);
       showSuccess('创建成功', '数据处理任务已创建');
       onSuccess();
+      onCancel();
     } catch (error: any) {
       const errorMessage = error.message || '创建任务失败';
+      setErrors({ submit: errorMessage });
       onError(errorMessage);
     } finally {
       setLoading(false);
@@ -502,65 +563,187 @@ export default function ProcessingTaskForm({
     }
   };
 
+  if (!visible) {
+    return <div style={{ display: 'none' }} />;
+  }
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow p-6">
-        {/* 步骤指示器 */}
-        <div className="mb-8">
-          <div className="flex items-center">
-            <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step >= 1 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'}`}>
-                1
-              </div>
-              <span className="ml-2 text-sm font-medium">基本信息</span>
-            </div>
-            <div className={`flex-1 h-0.5 mx-4 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-            <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${step >= 2 ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300'}`}>
-                2
-              </div>
-              <span className="ml-2 text-sm font-medium">处理配置</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 表单内容 */}
-        {step === 1 && renderBasicInfo()}
-        {step === 2 && renderProcessingConfig()}
-
-        {/* 操作按钮 */}
-        <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div 
+        className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">
+            创建数据处理任务
+          </h2>
           <button
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            取消
+            <X className="w-6 h-6" />
           </button>
-          <div className="flex space-x-3">
-            {step > 1 && (
-              <button
-                onClick={() => setStep(step - 1)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                上一步
-              </button>
+        </div>
+
+        {/* Form Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 错误提示 */}
+            {errors.submit && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <span className="text-red-800">{errors.submit}</span>
+              </div>
             )}
-            {step < 2 ? (
-              <button
-                onClick={() => setStep(step + 1)}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                下一步
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? '创建中...' : '创建任务'}
-              </button>
+
+            {/* 当前数据集信息 */}
+            {selectedDataset && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="font-medium text-blue-900 mb-2">当前数据集</h3>
+                <p className="text-sm text-blue-800">{selectedDataset.name}</p>
+                <p className="text-xs text-blue-600 mt-1">{selectedDataset.description || '暂无描述'}</p>
+              </div>
             )}
+
+            {/* 基本信息 */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">基本信息</h3>
+              
+              {/* 任务名称 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  任务名称 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="请输入任务名称"
+                  className={`input-glass w-full ${
+                    errors.name ? 'border-red-300 focus:border-red-500' : ''
+                  }`}
+                  maxLength={50}
+                />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                )}
+              </div>
+
+              {/* 任务描述 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  任务描述
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="请描述任务的目的、处理要求等信息"
+                  rows={3}
+                  className="input-glass w-full resize-none"
+                  maxLength={500}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {formData.description.length}/500
+                </p>
+              </div>
+
+              {/* 处理类型 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  处理类型 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.processingType}
+                  onChange={(e) => handleInputChange('processingType', e.target.value as ProcessingType)}
+                  className="input-glass w-full"
+                >
+                  <option value={ProcessingType.CLEANING}>数据清洗</option>
+                  <option value={ProcessingType.FILTERING}>数据过滤</option>
+                  <option value={ProcessingType.DEDUPLICATION}>数据去重</option>
+                  <option value={ProcessingType.PRIVACY_REMOVAL}>隐私移除</option>
+                  <option value={ProcessingType.FORMAT_CONVERSION}>格式转换</option>
+                  <option value={ProcessingType.NORMALIZATION}>数据标准化</option>
+                  <option value={ProcessingType.ENRICHMENT}>数据增强</option>
+                  <option value={ProcessingType.VALIDATION}>数据验证</option>
+                  <option value={ProcessingType.TRANSFORMATION}>数据转换</option>
+                  <option value={ProcessingType.SAMPLING}>数据采样</option>
+                  <option value={ProcessingType.MERGING}>数据合并</option>
+                  <option value={ProcessingType.SPLITTING}>数据分割</option>
+                  <option value={ProcessingType.AGGREGATION}>数据聚合</option>
+                  <option value={ProcessingType.FEATURE_EXTRACTION}>特征提取</option>
+                  <option value={ProcessingType.ANONYMIZATION}>数据匿名化</option>
+                  <option value={ProcessingType.ENCRYPTION}>数据加密</option>
+                  <option value={ProcessingType.COMPRESSION}>数据压缩</option>
+                  <option value={ProcessingType.EXPORT}>数据导出</option>
+                </select>
+              </div>
+
+              {/* 输出格式 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  输出格式 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.outputFormat}
+                  onChange={(e) => handleInputChange('outputFormat', e.target.value as OutputFormat)}
+                  className="input-glass w-full"
+                >
+                  <option value={OutputFormat.JSON}>JSON</option>
+                  <option value={OutputFormat.JSONL}>JSONL</option>
+                  <option value={OutputFormat.CSV}>CSV</option>
+                  <option value={OutputFormat.EXCEL}>Excel</option>
+                  <option value={OutputFormat.PARQUET}>Parquet</option>
+                  <option value={OutputFormat.XML}>XML</option>
+                  <option value={OutputFormat.YAML}>YAML</option>
+                  <option value={OutputFormat.TXT}>TXT</option>
+                  <option value={OutputFormat.MARKDOWN}>Markdown</option>
+                  <option value={OutputFormat.HTML}>HTML</option>
+                  <option value={OutputFormat.PDF}>PDF</option>
+                </select>
+              </div>
+            </div>
+
+            {/* 处理配置 */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <Settings className="w-5 h-5 mr-2" />
+                处理配置
+              </h3>
+              {renderProcessingConfig()}
+            </div>
+          </form>
+        </div>
+
+        {/* 弹窗底部 */}
+        <div className="border-t border-gray-200 p-6 bg-gray-50">
+          <div className="flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={loading}
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span>创建中...</span>
+                </>
+              ) : (
+                <>
+                  <Settings className="w-4 h-4" />
+                  <span>创建任务</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
