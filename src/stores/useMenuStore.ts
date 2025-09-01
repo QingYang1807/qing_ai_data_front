@@ -1,18 +1,13 @@
 import { create } from 'zustand';
 import { permissionAPI } from '@/api/system';
-import { defaultMenus } from '@/config/default_menu';
+import defaultMenu from '@/config/default_menu';
 
 export interface MenuItem {
-  id: number;
   permissionCode: string;
   permissionName: string;
-  permissionType: string;
-  parentId: number;
   path: string;
   component: string;
   icon: string;
-  sortOrder: number;
-  status: number;
   children?: MenuItem[];
 }
 
@@ -36,8 +31,8 @@ interface MenuState {
 }
 
 export const useMenuStore = create<MenuState>((set, get) => ({
-  menus: defaultMenus,
-  userMenus: defaultMenus, // 初始化时使用默认菜单
+  menus: defaultMenu,
+  userMenus: defaultMenu, // 初始化时使用默认菜单
   isLoading: false,
   isUsingDefaultMenu: true, // 初始状态使用默认菜单
   lastLoadTime: 0,
@@ -131,7 +126,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
   },
 
   resetToDefaultMenus: () => {
-    set({ userMenus: defaultMenus, isUsingDefaultMenu: true });
+    set({ userMenus: defaultMenu, isUsingDefaultMenu: true });
   },
 
   clearCache: () => {
@@ -139,29 +134,7 @@ export const useMenuStore = create<MenuState>((set, get) => ({
   },
 }));
 
-// 构建菜单树结构
+// 构建菜单树结构（简化版本，直接返回菜单数组）
 function buildMenuTree(menus: MenuItem[]): MenuItem[] {
-  const menuMap = new Map<number, MenuItem>();
-  const rootMenus: MenuItem[] = [];
-
-  // 创建菜单映射
-  menus.forEach(menu => {
-    menuMap.set(menu.id, { ...menu, children: [] });
-  });
-
-  // 构建树结构
-  menus.forEach(menu => {
-    const menuWithChildren = menuMap.get(menu.id)!;
-    if (menu.parentId === 0) {
-      rootMenus.push(menuWithChildren);
-    } else {
-      const parent = menuMap.get(menu.parentId);
-      if (parent) {
-        parent.children = parent.children || [];
-        parent.children.push(menuWithChildren);
-      }
-    }
-  });
-
-  return rootMenus;
+  return menus;
 } 
