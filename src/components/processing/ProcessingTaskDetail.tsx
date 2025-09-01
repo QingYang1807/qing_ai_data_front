@@ -47,8 +47,8 @@ export default function ProcessingTaskDetail({
 
   const loadLogs = async () => {
     try {
-      const response = await processingApi.getTaskLogs(taskId);
-      setLogs(response.data.records || []);
+      const response = await processingApi.getLogs(taskId);
+      setLogs(response.data || []);
     } catch (error) {
       console.error('加载日志失败:', error);
     }
@@ -77,15 +77,9 @@ export default function ProcessingTaskDetail({
   const handleDownloadResult = async () => {
     try {
       const response = await processingApi.downloadResult(taskId);
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${task?.name || 'task'}_result.${task?.outputFormat?.toLowerCase() || 'json'}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (response.data?.downloadUrl) {
+        window.open(response.data.downloadUrl, '_blank');
+      }
       showSuccess('下载成功', '处理结果已下载');
     } catch (error) {
       showError('下载失败', '无法下载处理结果');

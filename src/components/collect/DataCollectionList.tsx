@@ -7,7 +7,7 @@ import {
   Edit, 
   Trash2, 
   Play, 
-  Stop, 
+  Square, 
   Download, 
   Eye, 
   Clock, 
@@ -95,7 +95,7 @@ const DataCollectionList: React.FC<DataCollectionListProps> = ({
   const { data: tasksData, isLoading, refetch } = useQuery({
     queryKey: ['dataCollectionTasks', queryParams],
     queryFn: () => dataCollectionApi.getTasks(queryParams),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   // 获取统计信息
@@ -109,8 +109,8 @@ const DataCollectionList: React.FC<DataCollectionListProps> = ({
     mutationFn: (taskId: string) => dataCollectionApi.startTask(taskId),
     onSuccess: () => {
       showSuccess('任务启动成功');
-      queryClient.invalidateQueries(['dataCollectionTasks']);
-      queryClient.invalidateQueries(['dataCollectionStats']);
+      queryClient.invalidateQueries({ queryKey: ['dataCollectionTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dataCollectionStats'] });
     },
     onError: (error: any) => {
       showError('任务启动失败: ' + (error.message || '未知错误'));
@@ -122,8 +122,8 @@ const DataCollectionList: React.FC<DataCollectionListProps> = ({
     mutationFn: (taskId: string) => dataCollectionApi.stopTask(taskId),
     onSuccess: () => {
       showSuccess('任务停止成功');
-      queryClient.invalidateQueries(['dataCollectionTasks']);
-      queryClient.invalidateQueries(['dataCollectionStats']);
+      queryClient.invalidateQueries({ queryKey: ['dataCollectionTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dataCollectionStats'] });
     },
     onError: (error: any) => {
       showError('任务停止失败: ' + (error.message || '未知错误'));
@@ -137,8 +137,8 @@ const DataCollectionList: React.FC<DataCollectionListProps> = ({
       showSuccess('任务删除成功');
       setShowDeleteDialog(false);
       setDeletingTask(null);
-      queryClient.invalidateQueries(['dataCollectionTasks']);
-      queryClient.invalidateQueries(['dataCollectionStats']);
+      queryClient.invalidateQueries({ queryKey: ['dataCollectionTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['dataCollectionStats'] });
     },
     onError: (error: any) => {
       showError('任务删除失败: ' + (error.message || '未知错误'));
@@ -209,8 +209,8 @@ const DataCollectionList: React.FC<DataCollectionListProps> = ({
   const handleTaskSuccess = () => {
     handleCloseCreateModal();
     handleCloseEditModal();
-    queryClient.invalidateQueries(['dataCollectionTasks']);
-    queryClient.invalidateQueries(['dataCollectionStats']);
+    queryClient.invalidateQueries({ queryKey: ['dataCollectionTasks'] });
+    queryClient.invalidateQueries({ queryKey: ['dataCollectionStats'] });
   };
 
   const getStatusColor = (status: string) => {
@@ -497,7 +497,7 @@ const DataCollectionList: React.FC<DataCollectionListProps> = ({
                             className="text-red-400 hover:text-red-600 transition-colors"
                             title="停止任务"
                           >
-                            <Stop className="w-4 h-4" />
+                            <Square className="w-4 h-4" />
                           </button>
                         )}
                         
@@ -605,7 +605,7 @@ const DataCollectionList: React.FC<DataCollectionListProps> = ({
         }}
         confirmText="删除"
         cancelText="取消"
-        confirmType="danger"
+        type="danger"
       />
     </div>
   );

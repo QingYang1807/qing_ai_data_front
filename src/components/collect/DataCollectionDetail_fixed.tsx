@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { dataCollectionApi, DataCollectionTask } from '@/api/collect';
+import { datasourceApi } from '@/api/datasource';
 import { useToast } from '@/hooks/useToast';
 
 interface DataCollectionDetailProps {
@@ -50,6 +51,13 @@ const DataCollectionDetail: React.FC<DataCollectionDetailProps> = ({
     queryKey: ['dataCollectionLogs', task.id],
     queryFn: () => dataCollectionApi.getLogs(task.id),
     enabled: !!task.id,
+  });
+
+  // 获取数据源详情
+  const { data: dataSourceDetail } = useQuery({
+    queryKey: ['dataSource', task.dataSourceId],
+    queryFn: () => datasourceApi.getById(task.dataSourceId),
+    enabled: !!task.dataSourceId,
   });
 
   // 启动任务
@@ -339,8 +347,20 @@ const DataCollectionDetail: React.FC<DataCollectionDetailProps> = ({
                     <h3 className="text-lg font-medium text-gray-900 mb-4">数据源信息</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
+                        <span className="text-sm font-medium text-gray-700">数据源名称:</span>
+                        <p className="text-sm text-gray-900">{dataSourceDetail?.name || currentTask.dataSourceName || '未知数据源'}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">数据源类型:</span>
+                        <p className="text-sm text-gray-900">{dataSourceDetail?.type || '未知类型'}</p>
+                      </div>
+                      <div>
                         <span className="text-sm font-medium text-gray-700">数据源ID:</span>
                         <p className="text-sm text-gray-900">{currentTask.dataSourceId}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">连接状态:</span>
+                        <p className="text-sm text-gray-900">{dataSourceDetail?.status === 'active' ? '已连接' : '未连接'}</p>
                       </div>
                     </div>
                   </div>

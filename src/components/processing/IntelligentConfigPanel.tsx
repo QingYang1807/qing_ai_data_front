@@ -8,7 +8,10 @@ import {
   IntelligentConfig,
   AIProcessingConfig,
   KnowledgeBaseConfig,
-  TrainingDatasetConfig 
+  TrainingDatasetConfig,
+  AIModelType,
+  KnowledgeBaseFormat,
+  TrainingFormat
 } from '@/types';
 
 interface IntelligentConfigPanelProps {
@@ -37,12 +40,19 @@ export default function IntelligentConfigPanel({
   }, [datasetType, config]);
 
   const generateRecommendations = () => {
-    const recs = [];
+    const recs: Array<{
+      type: 'config' | 'template' | 'best_practice';
+      title: string;
+      description: string;
+      confidence: number;
+      action: string;
+      config?: ProcessingConfig;
+    }> = [];
     
     // 基于数据集类型的推荐
     if (datasetType === 'TEXT') {
       recs.push({
-        type: 'best_practice',
+        type: 'best_practice' as const,
         title: '文本数据最佳实践',
         description: '建议启用智能清洗和语义分析功能',
         confidence: 0.9,
@@ -60,14 +70,14 @@ export default function IntelligentConfigPanel({
               keywordExtraction: true
             }
           }
-        }
+        } as ProcessingConfig
       });
     }
 
     // 基于当前配置的推荐
     if (config.cleaning?.removeDuplicates) {
       recs.push({
-        type: 'config',
+        type: 'config' as const,
         title: '增强去重功能',
         description: '建议启用语义去重和模糊匹配',
         confidence: 0.8,
@@ -79,7 +89,7 @@ export default function IntelligentConfigPanel({
             fuzzyMatch: true,
             similarityThreshold: 0.8
           }
-        }
+        } as ProcessingConfig
       });
     }
 
@@ -99,21 +109,40 @@ export default function IntelligentConfigPanel({
   const updateAIProcessing = (updates: Partial<AIProcessingConfig>) => {
     onConfigChange({
       ...config,
-      aiProcessing: { ...config.aiProcessing, ...updates }
+      aiProcessing: { 
+        modelType: AIModelType.GPT,
+        ...config.aiProcessing, 
+        ...updates 
+      }
     });
   };
 
   const updateKnowledgeBase = (updates: Partial<KnowledgeBaseConfig>) => {
     onConfigChange({
       ...config,
-      knowledgeBase: { ...config.knowledgeBase, ...updates }
+      knowledgeBase: { 
+        format: KnowledgeBaseFormat.QA_PAIR,
+        chunkSize: 1000,
+        overlap: 200,
+        ...config.knowledgeBase, 
+        ...updates 
+      }
     });
   };
 
   const updateTraining = (updates: Partial<TrainingDatasetConfig>) => {
     onConfigChange({
       ...config,
-      training: { ...config.training, ...updates }
+      training: { 
+        format: TrainingFormat.INSTRUCTION,
+        instructionTuning: {
+          instructionTemplate: '请根据以下内容回答问题：{input}',
+          systemPrompt: '你是一个有用的AI助手',
+          maxLength: 2048
+        },
+        ...config.training, 
+        ...updates 
+      }
     });
   };
 
@@ -281,7 +310,7 @@ function BasicConfigTab({
             <label key={option.key} className="flex items-center">
               <input
                 type="checkbox"
-                checked={config.cleaning?.[option.key as keyof typeof config.cleaning] || false}
+                checked={Boolean(config.cleaning?.[option.key as keyof typeof config.cleaning])}
                 onChange={(e) => onConfigChange({
                   cleaning: {
                     ...config.cleaning,
@@ -384,7 +413,7 @@ function AIProcessingTab({
             <label key={option.key} className="flex items-center">
               <input
                 type="checkbox"
-                checked={config.aiProcessing?.contentGeneration?.[option.key as keyof typeof config.aiProcessing.contentGeneration] || false}
+                checked={Boolean(config.aiProcessing?.contentGeneration?.[option.key as keyof typeof config.aiProcessing.contentGeneration])}
                 onChange={(e) => onConfigChange({
                   contentGeneration: {
                     ...config.aiProcessing?.contentGeneration,
@@ -460,12 +489,13 @@ function KnowledgeBaseTab({
                     onChange={(e) => {
                       const currentTypes = config.knowledgeBase?.qaGeneration?.questionTypes || [];
                       const newTypes = e.target.checked
-                        ? [...currentTypes, type]
+                        ? [...currentTypes, type as any]
                         : currentTypes.filter(t => t !== type);
                       onConfigChange({
                         qaGeneration: {
-                          ...config.knowledgeBase?.qaGeneration,
-                          questionTypes: newTypes
+                          questionTypes: newTypes,
+                          answerTypes: ['extractive', 'generative'],
+                          ...config.knowledgeBase?.qaGeneration
                         }
                       });
                     }}
@@ -515,12 +545,13 @@ function TrainingTab({
             <input
               type="checkbox"
               checked={config.training?.dataAugmentation?.enabled || false}
-              onChange={(e) => onConfigChange({
-                dataAugmentation: {
-                  ...config.training?.dataAugmentation,
-                  enabled: e.target.checked
-                }
-              })}
+                              onChange={(e) => onConfigChange({
+                  dataAugmentation: {
+                    enabled: e.target.checked,
+                    methods: ['paraphrase', 'synonym_replacement'],
+                    ...config.training?.dataAugmentation
+                  }
+                })}
               className="mr-2"
             />
             <span className="text-sm text-gray-700">启用数据增强</span>
@@ -542,12 +573,13 @@ function TrainingTab({
                     onChange={(e) => {
                       const currentMethods = config.training?.dataAugmentation?.methods || [];
                       const newMethods = e.target.checked
-                        ? [...currentMethods, method]
+                        ? [...currentMethods, method as any]
                         : currentMethods.filter(m => m !== method);
                       onConfigChange({
                         dataAugmentation: {
-                          ...config.training?.dataAugmentation,
-                          methods: newMethods
+                          methods: newMethods,
+                          enabled: true,
+                          ...config.training?.dataAugmentation
                         }
                       });
                     }}
@@ -583,8 +615,10 @@ function QualityTab({
               checked={config.qualityAssessment?.enabled || false}
               onChange={(e) => onConfigChange({
                 qualityAssessment: {
-                  ...config.qualityAssessment,
-                  enabled: e.target.checked
+                  enabled: e.target.checked,
+                  metrics: ['completeness', 'accuracy'],
+                  threshold: 0.8,
+                  ...config.qualityAssessment
                 }
               })}
               className="mr-2"
@@ -611,8 +645,10 @@ function QualityTab({
                             : currentMetrics.filter(m => m !== metric);
                           onConfigChange({
                             qualityAssessment: {
-                              ...config.qualityAssessment,
-                              metrics: newMetrics
+                              enabled: true,
+                              metrics: newMetrics,
+                              threshold: 0.8,
+                              ...config.qualityAssessment
                             }
                           });
                         }}
@@ -636,8 +672,10 @@ function QualityTab({
                   value={config.qualityAssessment?.threshold || 0.8}
                   onChange={(e) => onConfigChange({
                     qualityAssessment: {
-                      ...config.qualityAssessment,
-                      threshold: parseFloat(e.target.value)
+                      enabled: true,
+                      metrics: ['completeness', 'accuracy'],
+                      threshold: parseFloat(e.target.value),
+                      ...config.qualityAssessment
                     }
                   })}
                   className="w-full"

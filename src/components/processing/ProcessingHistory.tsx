@@ -46,8 +46,29 @@ export default function ProcessingHistory({ onBack, selectedDataset }: Processin
         params.endDate = filter.endDate;
       }
 
-      const response = await processingApi.getHistory(params);
-      setHistory(response.data.records || []);
+      const response = await processingApi.getTasks(params);
+      const historyData = (response.data.records || []).map(task => ({
+        id: task.id,
+        taskId: task.id,
+        taskName: task.name,
+        description: task.description,
+        datasetId: task.datasetId,
+        datasetName: task.datasetName || '未知数据集',
+        processingType: task.processingType,
+        status: task.status,
+        progress: task.progress || 0,
+        startTime: task.startTime || task.createdTime,
+        endTime: task.endTime,
+        completedTime: task.endTime,
+        duration: task.processingTime,
+        processingTime: task.processingTime,
+        fileSize: task.fileSize,
+        recordCount: task.recordCount,
+        createdBy: task.createdBy,
+        outputPath: task.outputPath,
+        errorMessage: task.errorMessage
+      }));
+      setHistory(historyData);
     } catch (error) {
       console.error('加载处理历史失败:', error);
       showError('加载失败', '无法加载处理历史记录');
@@ -59,15 +80,9 @@ export default function ProcessingHistory({ onBack, selectedDataset }: Processin
   const handleDownloadResult = async (taskId: string) => {
     try {
       const response = await processingApi.downloadResult(taskId);
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `processing_result_${taskId}.json`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (response.data?.downloadUrl) {
+        window.open(response.data.downloadUrl, '_blank');
+      }
     } catch (error) {
       showError('下载失败', '无法下载处理结果');
     }

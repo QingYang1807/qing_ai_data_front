@@ -508,10 +508,9 @@ export default function ProcessingTaskList({
       {/* 创建任务弹窗 */}
       <ProcessingTaskForm
         visible={showCreateModal}
-        selectedDataset={selectedDataset}
+        dataset={selectedDataset}
         onCancel={handleCloseCreateModal}
         onSuccess={handleTaskSuccess}
-        onError={handleTaskError}
       />
     </div>
   );

@@ -14,7 +14,7 @@ interface DynamicSidebarProps {
 // 图标映射
 const iconMap: Record<string, React.ReactNode> = {
   'DatabaseOutlined': <Database className="w-5 h-5" />,
-  'CloudServerOutlined': <CloudServer className="w-5 h-5" />,
+  'CloudServerOutlined': <Server className="w-5 h-5" />,
   'CloudDownloadOutlined': <Download className="w-5 h-5" />,
   'ToolOutlined': <Filter className="w-5 h-5" />,
   'EditOutlined': <Edit className="w-5 h-5" />,
@@ -51,7 +51,6 @@ const iconMap: Record<string, React.ReactNode> = {
   'TeamOutlined': <Users className="w-5 h-5" />,
   'KeyOutlined': <Key className="w-5 h-5" />,
   'ProjectOutlined': <FolderOpen className="w-5 h-5" />,
-  'ToolOutlined': <Settings className="w-5 h-5" />,
   'ExperimentOutlined': <FlaskConical className="w-5 h-5" />,
   'CodeOutlined': <Code className="w-5 h-5" />,
   'BookOutlined': <BookOpen className="w-5 h-5" />,
@@ -59,7 +58,7 @@ const iconMap: Record<string, React.ReactNode> = {
 
 // 导入图标
 import {
-  Database, CloudServer, Download, Filter, Edit, Plus, Merge, BarChart3, RefreshCw,
+  Database, Server, Download, Filter, Edit, Plus, Merge, BarChart3, RefreshCw,
   ShoppingCart, List, Shield, CreditCard, Star, EyeOff, Lock, FileText, Home,
   TrendingUp, Bot, Grid, Play, CheckCircle, Rocket, Zap, Store, Upload, Workflow,
   GitBranch, Clock, Settings, User, Users, Key, FolderOpen, FlaskConical, Code, BookOpen

@@ -80,7 +80,8 @@ export default function TestProcessingFlow() {
             removeNulls: true,
             removeDuplicates: true
           }
-        }
+        },
+        outputFormat: OutputFormat.JSON
       };
       
       const response = await processingApi.createTask(taskData);
@@ -155,7 +156,8 @@ export default function TestProcessingFlow() {
             removeNulls: true,
             removeDuplicates: true
           }
-        }
+        },
+        outputFormat: OutputFormat.JSON
       };
 
       const response = await processingApi.createTask(taskData);

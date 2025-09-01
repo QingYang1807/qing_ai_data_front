@@ -150,7 +150,7 @@ export function updateModulePorts(newPorts: Partial<Record<keyof typeof MODULE_P
 }
 
 // 导出默认配置
-export default {
+const portsConfig = {
   MODULE_PORTS,
   MODULE_NAMES,
   API_PATHS,
@@ -160,4 +160,6 @@ export default {
   getAllModuleConfigs,
   isValidPort,
   updateModulePorts,
-}; 
+};
+
+export default portsConfig; 

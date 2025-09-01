@@ -561,10 +561,10 @@ const DataCollectionForm: React.FC<DataCollectionFormProps> = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={createTaskMutation.isLoading || updateTaskMutation.isLoading}
+                          disabled={createTaskMutation.isPending || updateTaskMutation.isPending}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {createTaskMutation.isLoading || updateTaskMutation.isLoading ? '保存中...' : (editingTask ? '更新' : '创建')}
+                          {createTaskMutation.isPending || updateTaskMutation.isPending ? '保存中...' : (editingTask ? '更新' : '创建')}
           </button>
         </div>
       </div>

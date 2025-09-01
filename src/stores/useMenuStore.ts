@@ -38,8 +38,8 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await permissionAPI.getAllMenus();
-      if (response.data.success) {
-        const menus = buildMenuTree(response.data.data);
+      if (response.code === 200) {
+        const menus = buildMenuTree(response.data);
         set({ menus, isLoading: false });
       } else {
         set({ isLoading: false });
@@ -54,8 +54,8 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await permissionAPI.getUserMenus(userId);
-      if (response.data.success) {
-        const userMenus = buildMenuTree(response.data.data);
+      if (response.code === 200) {
+        const userMenus = buildMenuTree(response.data);
         set({ userMenus, isLoading: false });
       } else {
         set({ isLoading: false });
@@ -70,8 +70,8 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await permissionAPI.getMenuTree();
-      if (response.data.success) {
-        set({ menus: response.data.data, isLoading: false });
+      if (response.code === 200) {
+        set({ menus: response.data, isLoading: false });
       } else {
         set({ isLoading: false });
       }

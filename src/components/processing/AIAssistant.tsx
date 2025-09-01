@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AIAssistantInteraction, ProcessingConfig, AIProcessingConfig } from '@/types';
+import { AIAssistantInteraction, ProcessingConfig, AIProcessingConfig, OutputFormat } from '@/types';
 import { useToast } from '@/hooks/useToast';
 
 interface AIAssistantProps {
@@ -101,8 +101,7 @@ export default function AIAssistant({
       const assistantMessage = {
         role: 'assistant' as const,
         content: response.content,
-        timestamp: new Date().toISOString(),
-        metadata: response.metadata
+        timestamp: new Date().toISOString()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -131,7 +130,7 @@ export default function AIAssistant({
         content: '我理解你想要清洗数据。我将为你配置智能数据清洗功能，包括：\n• 去除重复数据\n• 修复格式问题\n• 填充缺失值\n• 标准化数据格式\n\n这个配置适合大多数数据清洗需求。',
         config: {
           ...config,
-          outputFormat: config?.outputFormat || 'JSON',
+          outputFormat: config?.outputFormat || OutputFormat.JSON,
           cleaning: {
             removeNulls: true,
             removeDuplicates: true,
@@ -147,7 +146,7 @@ export default function AIAssistant({
               errorCorrection: true
             }
           }
-        }
+        } as ProcessingConfig
       };
     }
 
@@ -156,7 +155,7 @@ export default function AIAssistant({
         content: '我将为你配置知识库问答数据集生成功能：\n• 智能文档分块\n• 自动生成问答对\n• 质量评估和优化\n• 向量化存储\n\n这将创建一个高质量的知识库数据集。',
         config: {
           ...config,
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           knowledgeBase: {
             format: 'QA_PAIR',
             chunkSize: 1000,
@@ -186,7 +185,7 @@ export default function AIAssistant({
               maxQuestions: 10
             }
           }
-        }
+        } as ProcessingConfig
       };
     }
 
@@ -195,7 +194,7 @@ export default function AIAssistant({
         content: '我将为你配置模型训练数据集生成功能：\n• 指令学习格式\n• 对话训练格式\n• 数据增强\n• 质量验证\n\n这将创建一个适合大模型训练的高质量数据集。',
         config: {
           ...config,
-          outputFormat: 'JSONL',
+          outputFormat: OutputFormat.JSONL,
           training: {
             format: 'INSTRUCTION',
             instructionTuning: {
@@ -215,7 +214,7 @@ export default function AIAssistant({
               paraphraseGeneration: true
             }
           }
-        }
+        } as ProcessingConfig
       };
     }
 

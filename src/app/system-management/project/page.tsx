@@ -420,8 +420,8 @@ const ProjectManagementPage: React.FC = () => {
               return (
                 <List.Item
                   actions={[
-                    <Button type="link" size="small">编辑</Button>,
-                    <Button type="link" size="small" danger>移除</Button>
+                    <Button key="edit" type="link" size="small">编辑</Button>,
+                    <Button key="remove" type="link" size="small" danger>移除</Button>
                   ]}
                 >
                   <List.Item.Meta

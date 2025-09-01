@@ -251,29 +251,88 @@ function DetailsTab({ result }: { result: QualityAssessmentResult }) {
           {expandedSection === section.id && (
             <div className="border-t border-gray-200 p-4 bg-gray-50">
               <div className="space-y-3">
-                {section.details.issues?.map((issue, index) => (
-                  <div key={index} className="bg-white border border-gray-200 rounded p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{issue.type}</div>
-                        <div className="text-sm text-gray-600 mt-1">{issue.description}</div>
-                        {issue.examples && issue.examples.length > 0 && (
-                          <div className="mt-2">
-                            <div className="text-xs font-medium text-gray-500 mb-1">示例:</div>
-                            <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                              {issue.examples.slice(0, 3).join(', ')}
-                              {issue.examples.length > 3 && '...'}
+                {section.details.issues?.map((issue, index) => {
+                  // 处理不同类型的issues
+                  if ('field' in issue && 'missingCount' in issue && 'missingRate' in issue) {
+                    // Completeness issue
+                    return (
+                      <div key={index} className="bg-white border border-gray-200 rounded p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">缺失值问题</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              字段 "{issue.field}" 存在缺失值
                             </div>
                           </div>
-                        )}
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-gray-900">{issue.missingCount}</div>
+                            <div className="text-xs text-gray-500">缺失记录</div>
+                            <div className="text-xs text-gray-500">({(issue.missingRate * 100).toFixed(1)}%)</div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">{issue.count}</div>
-                        <div className="text-xs text-gray-500">条记录</div>
+                    );
+                  } else if ('type' in issue && 'count' in issue && 'description' in issue) {
+                    // Accuracy, Relevance, Usability issue
+                    return (
+                      <div key={index} className="bg-white border border-gray-200 rounded p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{issue.type}</div>
+                            <div className="text-sm text-gray-600 mt-1">{issue.description}</div>
+                            {'examples' in issue && issue.examples && issue.examples.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-xs font-medium text-gray-500 mb-1">示例:</div>
+                                <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                                  {issue.examples.slice(0, 3).join(', ')}
+                                  {issue.examples.length > 3 && '...'}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-gray-900">{issue.count}</div>
+                            <div className="text-xs text-gray-500">条记录</div>
+                          </div>
+                        </div>
                       </div>
+                    );
+                  } else if ('type' in issue && 'field' in issue && 'inconsistencyCount' in issue) {
+                    // Consistency issue
+                    return (
+                      <div key={index} className="bg-white border border-gray-200 rounded p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{issue.type}</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              字段 "{issue.field}" 存在一致性问题
+                            </div>
+                            {'examples' in issue && issue.examples && issue.examples.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-xs font-medium text-gray-500 mb-1">示例:</div>
+                                <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                                  {issue.examples.slice(0, 3).join(', ')}
+                                  {issue.examples.length > 3 && '...'}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-gray-900">{issue.inconsistencyCount}</div>
+                            <div className="text-xs text-gray-500">不一致记录</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  // 默认情况
+                  return (
+                    <div key={index} className="bg-white border border-gray-200 rounded p-3">
+                      <div className="text-sm text-gray-600">未知问题类型</div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

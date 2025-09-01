@@ -65,10 +65,10 @@ export default function DatasetVersionManager({
     try {
       setLoading(true);
       const response = await datasetApi.GetDatasetVersions(Number(dataset.id));
-      setVersions(response.records || []);
+      setVersions(response.data || []);
       
       // 设置最新版本为默认选中
-      const latestVersion = response.records?.find(v => v.isLatest);
+      const latestVersion = response.data?.find(v => v.isLatest);
       if (latestVersion) {
         setSelectedVersion(latestVersion);
       }

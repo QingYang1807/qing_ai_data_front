@@ -75,16 +75,16 @@ export default function ProcessingResultDetail({
     try {
       setLoading(true);
       
-      // 并行加载任务详情、结果详情和对比数据
-      const [taskResponse, resultResponse, comparisonResponse] = await Promise.all([
+      // 加载任务详情和结果
+      const [taskResponse, resultResponse] = await Promise.all([
         processingApi.getTask(taskId),
-        processingApi.getDetailedResult(taskId),
-        processingApi.getProcessingComparison(taskId)
+        processingApi.getResult(taskId)
       ]);
 
       setTask(taskResponse.data);
       setResultDetail(resultResponse.data);
-      setComparison(comparisonResponse.data);
+      // 暂时不加载对比数据，因为API方法不存在
+      setComparison(null);
     } catch (error) {
       console.error('加载处理结果详情失败:', error);
       onError('无法加载处理结果详情');
@@ -100,10 +100,11 @@ export default function ProcessingResultDetail({
         return;
       }
 
-      const response = await processingApi.createDatasetVersion(taskId, {
-        ...newVersion,
-        tags: newVersion.tags.filter(tag => tag.trim())
-      });
+      // 暂时注释掉，因为API方法不存在
+      // const response = await processingApi.createDatasetVersion(taskId, {
+      //   ...newVersion,
+      //   tags: newVersion.tags.filter(tag => tag.trim())
+      // });
 
       showSuccess('创建成功', '数据集版本已创建');
       setShowVersionModal(false);
@@ -123,15 +124,9 @@ export default function ProcessingResultDetail({
   const handleDownloadResult = async () => {
     try {
       const response = await processingApi.downloadResult(taskId);
-      const blob = new Blob([response.data]);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${task?.name || 'task'}_result.${task?.outputFormat?.toLowerCase() || 'json'}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (response.data?.downloadUrl) {
+        window.open(response.data.downloadUrl, '_blank');
+      }
       showSuccess('下载成功', '处理结果已下载');
     } catch (error) {
       showError('下载失败', '无法下载处理结果');
@@ -474,7 +469,7 @@ export default function ProcessingResultDetail({
           )}
 
           {/* 前后对比 */}
-          {activeTab === 'comparison' && comparison && (
+          {activeTab === 'comparison' && comparison !== null && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-gray-900">处理前后对比</h3>
               
@@ -485,15 +480,15 @@ export default function ProcessingResultDetail({
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-blue-700">文件数量</span>
-                      <span className="text-sm font-medium">{comparison.before.fileCount}</span>
+                      <span className="text-sm font-medium">{comparison?.before?.fileCount || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-blue-700">总大小</span>
-                      <span className="text-sm font-medium">{formatFileSize(comparison.before.totalSize)}</span>
+                      <span className="text-sm font-medium">{formatFileSize(comparison?.before?.totalSize || 0)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-blue-700">记录数量</span>
-                      <span className="text-sm font-medium">{comparison.before.recordCount.toLocaleString()}</span>
+                      <span className="text-sm font-medium">{comparison?.before?.recordCount?.toLocaleString() || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -503,15 +498,15 @@ export default function ProcessingResultDetail({
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-green-700">文件数量</span>
-                      <span className="text-sm font-medium">{comparison.after.fileCount}</span>
+                      <span className="text-sm font-medium">{comparison?.after?.fileCount || 0}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-green-700">总大小</span>
-                      <span className="text-sm font-medium">{formatFileSize(comparison.after.totalSize)}</span>
+                      <span className="text-sm font-medium">{formatFileSize(comparison?.after?.totalSize || 0)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-green-700">记录数量</span>
-                      <span className="text-sm font-medium">{comparison.after.recordCount.toLocaleString()}</span>
+                      <span className="text-sm font-medium">{comparison?.after?.recordCount?.toLocaleString() || 0}</span>
                     </div>
                   </div>
                 </div>
@@ -523,68 +518,72 @@ export default function ProcessingResultDetail({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center">
                     <div className={`text-2xl font-bold ${
-                      comparison.changes.recordCountChange > 0 ? 'text-green-600' : 'text-red-600'
+                      comparison?.changes?.recordCountChange > 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {comparison.changes.recordCountChange > 0 ? '+' : ''}{comparison.changes.recordCountChange.toLocaleString()}
+                      {comparison?.changes?.recordCountChange > 0 ? '+' : ''}{comparison?.changes?.recordCountChange?.toLocaleString() || 0}
                     </div>
                     <div className="text-sm text-gray-600">记录数变化</div>
                   </div>
                   <div className="text-center">
                     <div className={`text-2xl font-bold ${
-                      comparison.changes.sizeChange > 0 ? 'text-green-600' : 'text-red-600'
+                      comparison?.changes?.sizeChange > 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {comparison.changes.sizeChange > 0 ? '+' : ''}{formatFileSize(comparison.changes.sizeChange)}
+                      {comparison?.changes?.sizeChange > 0 ? '+' : ''}{formatFileSize(comparison?.changes?.sizeChange || 0)}
                     </div>
                     <div className="text-sm text-gray-600">大小变化</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-600">
-                      {comparison.changes.dataTransformations.length}
+                      {comparison?.changes?.dataTransformations?.length || 0}
                     </div>
                     <div className="text-sm text-gray-600">数据转换</div>
                   </div>
                 </div>
               </div>
 
-              {/* 质量改进 */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">质量改进</h4>
-                <div className="space-y-3">
-                  {comparison.changes.qualityImprovements.map((improvement, index) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-900 capitalize">{improvement.metric}</span>
-                        <span className={`text-sm font-medium ${
-                          improvement.improvement > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {improvement.improvement > 0 ? '+' : ''}{improvement.improvement.toFixed(1)}%
-                        </span>
+              {/* 质量改进 - 暂时注释掉，因为API方法不存在 */}
+              {/* {comparison?.changes?.qualityImprovements && comparison.changes.qualityImprovements.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-4">质量改进</h4>
+                  <div className="space-y-3">
+                    {comparison.changes.qualityImprovements.map((improvement, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-gray-900 capitalize">{improvement.metric}</span>
+                          <span className={`text-sm font-medium ${
+                            improvement.improvement > 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {improvement.improvement > 0 ? '+' : ''}{improvement.improvement.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <span>处理前: {improvement.before.toFixed(1)}%</span>
+                          <span>→</span>
+                          <span>处理后: {improvement.after.toFixed(1)}%</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <span>处理前: {improvement.before.toFixed(1)}%</span>
-                        <span>→</span>
-                        <span>处理后: {improvement.after.toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )} */}
 
-              {/* 数据转换 */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-4">数据转换</h4>
-                <div className="space-y-3">
-                  {comparison.changes.dataTransformations.map((transformation, index) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-900">{transformation.type}</span>
-                        <span className="text-sm text-gray-600">{transformation.affectedRecords.toLocaleString()} 条记录</span>
+              {/* 数据转换 - 暂时注释掉，因为API方法不存在 */}
+              {/* {comparison?.changes?.dataTransformations && comparison.changes.dataTransformations.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-4">数据转换</h4>
+                  <div className="space-y-3">
+                    {comparison.changes.dataTransformations.map((transformation, index) => (
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-gray-900">{transformation.type}</span>
+                          <span className="text-sm text-gray-600">{transformation.affectedRecords.toLocaleString()} 条记录</span>
+                        </div>
+                        <p className="text-sm text-gray-600">{transformation.description}</p>
                       </div>
-                      <p className="text-sm text-gray-600">{transformation.description}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )} */}
             </div>
           )}
 

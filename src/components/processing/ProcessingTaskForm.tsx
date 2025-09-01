@@ -305,10 +305,10 @@ const ProcessingTaskForm: React.FC<ProcessingTaskFormProps> = ({
           </button>
           <button
             onClick={handleSubmit}
-            disabled={createTaskMutation.isLoading}
+                          disabled={createTaskMutation.isPending}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {createTaskMutation.isLoading ? '创建中...' : '创建任务'}
+                          {createTaskMutation.isPending ? '创建中...' : '创建任务'}
           </button>
         </div>
       </div>

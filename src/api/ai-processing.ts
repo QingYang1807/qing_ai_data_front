@@ -1,17 +1,18 @@
-import { client } from './client';
+import { apiClients } from './client';
 import { 
   ProcessingConfig, 
   AIProcessingConfig, 
   QualityAssessmentResult,
   KnowledgeBaseConfig,
-  TrainingDatasetConfig 
+  TrainingDatasetConfig,
+  OutputFormat
 } from '@/types';
 
 // AI处理相关API接口
 export const aiProcessingApi = {
   // 智能配置推荐
   getRecommendations: async (datasetType: string, currentConfig?: ProcessingConfig) => {
-    const response = await client.post('/api/ai/recommendations', {
+    const response = await apiClients.process.post('/api/ai/recommendations', {
       datasetType,
       currentConfig
     });
@@ -20,7 +21,7 @@ export const aiProcessingApi = {
 
   // 自然语言配置解析
   parseNaturalLanguage: async (input: string, context?: any) => {
-    const response = await client.post('/api/ai/parse-config', {
+    const response = await apiClients.process.post('/api/ai/parse-config', {
       input,
       context
     });
@@ -29,7 +30,7 @@ export const aiProcessingApi = {
 
   // AI助手对话
   chatWithAssistant: async (message: string, conversationHistory?: any[]) => {
-    const response = await client.post('/api/ai/chat', {
+    const response = await apiClients.process.post('/api/ai/chat', {
       message,
       conversationHistory
     });
@@ -38,7 +39,7 @@ export const aiProcessingApi = {
 
   // 数据质量评估
   assessQuality: async (data: any, config?: ProcessingConfig) => {
-    const response = await client.post('/api/ai/quality-assessment', {
+    const response = await apiClients.process.post('/api/ai/quality-assessment', {
       data,
       config
     });
@@ -47,7 +48,7 @@ export const aiProcessingApi = {
 
   // 智能数据清洗
   intelligentCleaning: async (data: any, config: AIProcessingConfig) => {
-    const response = await client.post('/api/ai/intelligent-cleaning', {
+    const response = await apiClients.process.post('/api/ai/intelligent-cleaning', {
       data,
       config
     });
@@ -56,7 +57,7 @@ export const aiProcessingApi = {
 
   // 语义分析
   semanticAnalysis: async (data: any, config: AIProcessingConfig) => {
-    const response = await client.post('/api/ai/semantic-analysis', {
+    const response = await apiClients.process.post('/api/ai/semantic-analysis', {
       data,
       config
     });
@@ -65,7 +66,7 @@ export const aiProcessingApi = {
 
   // 内容生成
   generateContent: async (data: any, config: AIProcessingConfig) => {
-    const response = await client.post('/api/ai/content-generation', {
+    const response = await apiClients.process.post('/api/ai/content-generation', {
       data,
       config
     });
@@ -74,7 +75,7 @@ export const aiProcessingApi = {
 
   // 知识库生成
   generateKnowledgeBase: async (data: any, config: KnowledgeBaseConfig) => {
-    const response = await client.post('/api/ai/knowledge-base-generation', {
+    const response = await apiClients.process.post('/api/ai/knowledge-base-generation', {
       data,
       config
     });
@@ -83,7 +84,7 @@ export const aiProcessingApi = {
 
   // 训练数据集生成
   generateTrainingDataset: async (data: any, config: TrainingDatasetConfig) => {
-    const response = await client.post('/api/ai/training-dataset-generation', {
+    const response = await apiClients.process.post('/api/ai/training-dataset-generation', {
       data,
       config
     });
@@ -92,19 +93,19 @@ export const aiProcessingApi = {
 
   // 获取AI模型列表
   getAvailableModels: async () => {
-    const response = await client.get('/api/ai/models');
+    const response = await apiClients.process.get('/api/ai/models');
     return response.data;
   },
 
   // 测试AI模型连接
   testModelConnection: async (modelConfig: any) => {
-    const response = await client.post('/api/ai/test-connection', modelConfig);
+    const response = await apiClients.process.post('/api/ai/test-connection', modelConfig);
     return response.data;
   },
 
   // 获取处理预览
   getProcessingPreview: async (data: any, config: ProcessingConfig) => {
-    const response = await client.post('/api/ai/processing-preview', {
+    const response = await apiClients.process.post('/api/ai/processing-preview', {
       data,
       config
     });
@@ -113,7 +114,7 @@ export const aiProcessingApi = {
 
   // 获取处理建议
   getProcessingSuggestions: async (data: any, currentConfig: ProcessingConfig) => {
-    const response = await client.post('/api/ai/processing-suggestions', {
+    const response = await apiClients.process.post('/api/ai/processing-suggestions', {
       data,
       currentConfig
     });
@@ -122,7 +123,7 @@ export const aiProcessingApi = {
 
   // 批量质量评估
   batchQualityAssessment: async (datasets: any[], config?: ProcessingConfig) => {
-    const response = await client.post('/api/ai/batch-quality-assessment', {
+    const response = await apiClients.process.post('/api/ai/batch-quality-assessment', {
       datasets,
       config
     });
@@ -131,37 +132,37 @@ export const aiProcessingApi = {
 
   // 获取AI处理统计
   getAIProcessingStats: async () => {
-    const response = await client.get('/api/ai/stats');
+    const response = await apiClients.process.get('/api/ai/stats');
     return response.data;
   },
 
   // 获取AI处理历史
   getAIProcessingHistory: async (params?: any) => {
-    const response = await client.get('/api/ai/history', { params });
+    const response = await apiClients.process.get('/api/ai/history', { params });
     return response.data;
   },
 
   // 保存AI配置模板
   saveAIConfigTemplate: async (template: any) => {
-    const response = await client.post('/api/ai/templates', template);
+    const response = await apiClients.process.post('/api/ai/templates', template);
     return response.data;
   },
 
   // 获取AI配置模板列表
   getAIConfigTemplates: async () => {
-    const response = await client.get('/api/ai/templates');
+    const response = await apiClients.process.get('/api/ai/templates');
     return response.data;
   },
 
   // 删除AI配置模板
   deleteAIConfigTemplate: async (templateId: string) => {
-    const response = await client.delete(`/api/ai/templates/${templateId}`);
+    const response = await apiClients.process.delete(`/api/ai/templates/${templateId}`);
     return response.data;
   },
 
   // 导出AI处理结果
   exportAIResults: async (taskId: string, format: string) => {
-    const response = await client.get(`/api/ai/export/${taskId}`, {
+    const response = await apiClients.process.get(`/api/ai/export/${taskId}`, {
       params: { format },
       responseType: 'blob'
     });
@@ -170,37 +171,37 @@ export const aiProcessingApi = {
 
   // 获取AI处理日志
   getAIProcessingLogs: async (taskId: string) => {
-    const response = await client.get(`/api/ai/logs/${taskId}`);
+    const response = await apiClients.process.get(`/api/ai/logs/${taskId}`);
     return response.data;
   },
 
   // 重新运行AI处理任务
   rerunAITask: async (taskId: string, config?: ProcessingConfig) => {
-    const response = await client.post(`/api/ai/rerun/${taskId}`, { config });
+    const response = await apiClients.process.post(`/api/ai/rerun/${taskId}`, { config });
     return response.data;
   },
 
   // 停止AI处理任务
   stopAITask: async (taskId: string) => {
-    const response = await client.post(`/api/ai/stop/${taskId}`);
+    const response = await apiClients.process.post(`/api/ai/stop/${taskId}`);
     return response.data;
   },
 
   // 获取AI处理进度
   getAIProcessingProgress: async (taskId: string) => {
-    const response = await client.get(`/api/ai/progress/${taskId}`);
+    const response = await apiClients.process.get(`/api/ai/progress/${taskId}`);
     return response.data;
   },
 
   // 验证AI配置
   validateAIConfig: async (config: ProcessingConfig) => {
-    const response = await client.post('/api/ai/validate-config', config);
+    const response = await apiClients.process.post('/api/ai/validate-config', config);
     return response.data;
   },
 
   // 获取AI处理最佳实践
   getBestPractices: async (datasetType: string, processingType: string) => {
-    const response = await client.get('/api/ai/best-practices', {
+    const response = await apiClients.process.get('/api/ai/best-practices', {
       params: { datasetType, processingType }
     });
     return response.data;
@@ -208,7 +209,7 @@ export const aiProcessingApi = {
 
   // 获取AI处理文档
   getDocumentation: async (topic: string) => {
-    const response = await client.get('/api/ai/documentation', {
+    const response = await apiClients.process.get('/api/ai/documentation', {
       params: { topic }
     });
     return response.data;
@@ -216,13 +217,13 @@ export const aiProcessingApi = {
 
   // 提交AI处理反馈
   submitFeedback: async (taskId: string, feedback: any) => {
-    const response = await client.post(`/api/ai/feedback/${taskId}`, feedback);
+    const response = await apiClients.process.post(`/api/ai/feedback/${taskId}`, feedback);
     return response.data;
   },
 
   // 获取AI处理性能指标
   getPerformanceMetrics: async (timeRange?: string) => {
-    const response = await client.get('/api/ai/performance', {
+    const response = await apiClients.process.get('/api/ai/performance', {
       params: { timeRange }
     });
     return response.data;
@@ -230,7 +231,7 @@ export const aiProcessingApi = {
 
   // 优化AI配置
   optimizeAIConfig: async (data: any, currentConfig: ProcessingConfig, optimizationGoal: string) => {
-    const response = await client.post('/api/ai/optimize-config', {
+    const response = await apiClients.process.post('/api/ai/optimize-config', {
       data,
       currentConfig,
       optimizationGoal
@@ -240,7 +241,7 @@ export const aiProcessingApi = {
 
   // 获取AI处理成本估算
   getCostEstimate: async (data: any, config: ProcessingConfig) => {
-    const response = await client.post('/api/ai/cost-estimate', {
+    const response = await apiClients.process.post('/api/ai/cost-estimate', {
       data,
       config
     });
@@ -249,7 +250,7 @@ export const aiProcessingApi = {
 
   // 获取AI处理时间估算
   getTimeEstimate: async (data: any, config: ProcessingConfig) => {
-    const response = await client.post('/api/ai/time-estimate', {
+    const response = await apiClients.process.post('/api/ai/time-estimate', {
       data,
       config
     });
@@ -367,7 +368,7 @@ export const mockAIApi = {
       '清洗': {
         content: '我理解你想要清洗数据。我将为你配置智能数据清洗功能，包括去除重复数据、修复格式问题、填充缺失值和标准化数据格式。',
         config: {
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           cleaning: {
             removeNulls: true,
             removeDuplicates: true,
@@ -388,7 +389,7 @@ export const mockAIApi = {
       '知识库': {
         content: '我将为你配置知识库问答数据集生成功能，包括智能文档分块、自动生成问答对、质量评估和优化、向量化存储。',
         config: {
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           knowledgeBase: {
             format: 'QA_PAIR',
             chunkSize: 1000,

@@ -60,8 +60,8 @@ const DatasetProcessing: React.FC<DatasetProcessingProps> = ({
     mutationFn: (taskId: string) => processingApi.startTask(taskId),
     onSuccess: () => {
       showSuccess('处理任务启动成功');
-      queryClient.invalidateQueries(['datasetProcessingTasks', dataset.id]);
-      queryClient.invalidateQueries(['processingStats']);
+      queryClient.invalidateQueries({ queryKey: ['datasetProcessingTasks', dataset.id] });
+      queryClient.invalidateQueries({ queryKey: ['processingStats'] });
     },
     onError: (error: any) => {
       showError('任务启动失败: ' + (error.message || '未知错误'));
@@ -73,8 +73,8 @@ const DatasetProcessing: React.FC<DatasetProcessingProps> = ({
     mutationFn: (taskId: string) => processingApi.stopTask(taskId),
     onSuccess: () => {
       showSuccess('处理任务停止成功');
-      queryClient.invalidateQueries(['datasetProcessingTasks', dataset.id]);
-      queryClient.invalidateQueries(['processingStats']);
+      queryClient.invalidateQueries({ queryKey: ['datasetProcessingTasks', dataset.id] });
+      queryClient.invalidateQueries({ queryKey: ['processingStats'] });
     },
     onError: (error: any) => {
       showError('任务停止失败: ' + (error.message || '未知错误'));
@@ -119,8 +119,8 @@ const DatasetProcessing: React.FC<DatasetProcessingProps> = ({
   const handleTaskSuccess = () => {
     setShowCreateModal(false);
     setSelectedProcessingType(null);
-    queryClient.invalidateQueries(['datasetProcessingTasks', dataset.id]);
-    queryClient.invalidateQueries(['processingStats']);
+    queryClient.invalidateQueries({ queryKey: ['datasetProcessingTasks', dataset.id] });
+    queryClient.invalidateQueries({ queryKey: ['processingStats'] });
   };
 
   const getStatusColor = (status: string) => {
@@ -477,11 +477,15 @@ const DatasetProcessing: React.FC<DatasetProcessingProps> = ({
       {/* 任务详情弹窗 */}
       {viewingTask && (
         <ProcessingTaskDetail
-          task={viewingTask}
-          onClose={() => setViewingTask(null)}
-          onEdit={() => {
+          taskId={viewingTask.id}
+          onBack={() => setViewingTask(null)}
+          onSuccess={() => {
             setViewingTask(null);
-            // 可以在这里添加编辑逻辑
+            // 可以在这里添加成功处理逻辑
+          }}
+          onError={(error) => {
+            console.error('处理任务错误:', error);
+            // 可以在这里添加错误处理逻辑
           }}
         />
       )}

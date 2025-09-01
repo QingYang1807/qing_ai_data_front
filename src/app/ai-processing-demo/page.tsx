@@ -5,20 +5,20 @@ import AIAssistant from '@/components/processing/AIAssistant';
 import IntelligentConfigPanel from '@/components/processing/IntelligentConfigPanel';
 import QualityAssessment from '@/components/processing/QualityAssessment';
 import { mockAIApi } from '@/api/ai-processing';
-import { ProcessingConfig, QualityAssessmentResult } from '@/types';
+import { ProcessingConfig, QualityAssessmentResult, OutputFormat, AIModelType, KnowledgeBaseFormat, TrainingFormat } from '@/types';
 
 export default function AIProcessingDemo() {
   const [activeTab, setActiveTab] = useState<'assistant' | 'config' | 'quality'>('assistant');
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [currentConfig, setCurrentConfig] = useState<ProcessingConfig>({
-    outputFormat: 'JSON',
+    outputFormat: OutputFormat.JSON,
     cleaning: {
       removeNulls: true,
       removeDuplicates: true,
       trimWhitespace: true
     },
     aiProcessing: {
-      modelType: 'GPT',
+      modelType: AIModelType.GPT,
       temperature: 0.7,
       intelligentCleaning: {
         semanticAnomalyDetection: true,
@@ -26,7 +26,7 @@ export default function AIProcessingDemo() {
       }
     },
     knowledgeBase: {
-      format: 'QA_PAIR',
+      format: KnowledgeBaseFormat.QA_PAIR,
       chunkSize: 1000,
       overlap: 200,
       qaGeneration: {
@@ -37,7 +37,7 @@ export default function AIProcessingDemo() {
       }
     },
     training: {
-      format: 'INSTRUCTION',
+      format: TrainingFormat.INSTRUCTION,
       instructionTuning: {
         instructionTemplate: '请根据以下内容回答问题：{input}',
         systemPrompt: '你是一个有用的AI助手',

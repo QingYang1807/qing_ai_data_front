@@ -33,8 +33,8 @@ export default function UserManagementPage() {
     setLoading(true);
     try {
       const response = await userAPI.getUsers();
-      if (response.data.success) {
-        setUsers(response.data.data || []);
+      if (response.data.content) {
+        setUsers(response.data.content || []);
       }
     } catch (error) {
       message.error('加载用户列表失败');
@@ -58,7 +58,7 @@ export default function UserManagementPage() {
   const handleDelete = async (id: number) => {
     try {
       const response = await userAPI.deleteUser(id);
-      if (response.data.success) {
+      if (response.data.code === 200) {
         message.success('删除成功');
         loadUsers();
       } else {
@@ -72,7 +72,7 @@ export default function UserManagementPage() {
   const handleStatusChange = async (id: number, status: number) => {
     try {
       const response = await userAPI.updateUserStatus(id, status);
-      if (response.data.success) {
+      if (response.data.code === 200) {
         message.success('状态更新成功');
         loadUsers();
       } else {
@@ -87,7 +87,7 @@ export default function UserManagementPage() {
     try {
       if (editingUser) {
         const response = await userAPI.updateUser(editingUser.id, values);
-        if (response.data.success) {
+        if (response.data.code === 200) {
           message.success('更新成功');
           setModalVisible(false);
           loadUsers();
@@ -96,7 +96,7 @@ export default function UserManagementPage() {
         }
       } else {
         const response = await userAPI.createUser(values);
-        if (response.data.success) {
+        if (response.data.code === 200) {
           message.success('创建成功');
           setModalVisible(false);
           loadUsers();
@@ -161,7 +161,7 @@ export default function UserManagementPage() {
     {
       title: '操作',
       key: 'action',
-      render: (_, record: User) => (
+      render: (_: any, record: User) => (
         <Space size="middle">
           <Button
             type="link"

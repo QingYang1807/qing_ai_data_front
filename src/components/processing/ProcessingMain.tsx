@@ -110,10 +110,9 @@ export default function ProcessingMain({ selectedDataset, onBackToDataset }: Pro
         return (
           <ProcessingTaskForm
             visible={true}
-            selectedDataset={selectedDataset}
+            dataset={selectedDataset}
             onCancel={handleBackToList}
             onSuccess={handleTaskSuccess}
-            onError={handleTaskError}
           />
         );
       case 'detail':
@@ -343,10 +342,9 @@ export default function ProcessingMain({ selectedDataset, onBackToDataset }: Pro
       {/* 创建任务弹窗 */}
       <ProcessingTaskForm
         visible={showCreateModal}
-        selectedDataset={selectedDataset}
+        dataset={selectedDataset}
         onCancel={handleCloseCreateModal}
         onSuccess={handleTaskSuccess}
-        onError={handleTaskError}
       />
 
       {/* AI助手弹窗 */}

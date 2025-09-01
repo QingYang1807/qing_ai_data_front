@@ -22,6 +22,7 @@ import {
   ProcessingStatus, 
   ProcessingConfig, 
   Dataset,
+  OutputFormat,
   ProcessingWorkflow as ProcessingWorkflowType
 } from '@/types';
 import { processingApi } from '@/api/processing';
@@ -75,7 +76,7 @@ export default function ProcessingWorkflow({
         type: ProcessingType.VALIDATION,
         description: '检查数据完整性、准确性和一致性',
         config: {
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           validation: {
             rules: [
               { field: '*', rule: 'not_null', message: '字段不能为空' },
@@ -94,7 +95,7 @@ export default function ProcessingWorkflow({
         type: ProcessingType.CLEANING,
         description: '移除空值、重复数据，修正格式错误',
         config: {
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           cleaning: {
             removeNulls: true,
             removeDuplicates: true,
@@ -112,7 +113,7 @@ export default function ProcessingWorkflow({
         type: ProcessingType.NORMALIZATION,
         description: '将数据标准化为统一格式',
         config: {
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           normalization: {
             textNormalization: true,
             numberNormalization: true,
@@ -129,7 +130,7 @@ export default function ProcessingWorkflow({
         type: ProcessingType.ENRICHMENT,
         description: '添加计算字段和补充信息',
         config: {
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           enrichment: {
             addFields: {},
             calculateFields: []
@@ -145,7 +146,7 @@ export default function ProcessingWorkflow({
         type: ProcessingType.EXPORT,
         description: '导出处理后的数据',
         config: {
-          outputFormat: 'JSON',
+          outputFormat: OutputFormat.JSON,
           transformation: {
             selectFields: ['*'],
             sortBy: []

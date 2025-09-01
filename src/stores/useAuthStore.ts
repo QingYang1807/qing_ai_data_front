@@ -40,8 +40,18 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await authAPI.login({ username, password });
-          if (response.data.success) {
-            const user = response.data.data;
+          if (response.code === 200) {
+            const loginUser = response.data.user;
+            // 创建完整的User对象，补充缺失的属性
+            const user: User = {
+              id: loginUser.id,
+              username: loginUser.username,
+              realName: loginUser.username, // 使用username作为realName的默认值
+              email: loginUser.email,
+              phone: '', // 默认空字符串
+              status: 1, // 默认启用状态
+              lastLoginTime: new Date().toISOString(),
+            };
             set({
               user,
               isAuthenticated: true,
@@ -64,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authAPI.register(userData);
           set({ isLoading: false });
-          return response.data.success;
+          return response.code === 200;
         } catch (error) {
           console.error('Register error:', error);
           set({ isLoading: false });
