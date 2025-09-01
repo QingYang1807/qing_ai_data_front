@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Menu } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
 import { useMenuStore, MenuItem } from '@/stores/useMenuStore';
@@ -109,6 +109,13 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
   const { user } = useAuthStore();
   const { userMenus, loadUserMenus, isLoading, isUsingDefaultMenu } = useMenuStore();
 
+  // 使用 useCallback 优化路由跳转函数
+  const handleMenuClick = useCallback((path: string) => {
+    if (path && path !== pathname) {
+      router.push(path);
+    }
+  }, [router, pathname]);
+
   useEffect(() => {
     if (user?.id) {
       // 尝试从数据库加载菜单，失败时保持默认菜单
@@ -118,25 +125,26 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
     }
   }, [user?.id, loadUserMenus]);
 
-  // 递归构建菜单项
-  const buildMenuItems = (menus: MenuItem[]): any[] => {
-    return menus.map(menu => ({
-      key: menu.path || menu.permissionCode,
-      icon: iconMap[menu.icon] || <Database className="w-5 h-5" />,
-      label: isCollapsed ? null : menu.permissionName,
-      children: menu.children && menu.children.length > 0 ? buildMenuItems(menu.children) : undefined,
-      onClick: () => {
-        if (menu.path && !menu.children?.length) {
-          router.push(menu.path);
-        }
-      },
-    }));
-  };
+  // 使用 useMemo 优化菜单项构建
+  const menuItems = useMemo(() => {
+    const buildMenuItems = (menus: MenuItem[]): any[] => {
+      return menus.map(menu => ({
+        key: menu.path || menu.permissionCode,
+        icon: iconMap[menu.icon] || <Database className="w-5 h-5" />,
+        label: isCollapsed ? null : menu.permissionName,
+        children: menu.children && menu.children.length > 0 ? buildMenuItems(menu.children) : undefined,
+        onClick: () => {
+          if (menu.path && !menu.children?.length) {
+            handleMenuClick(menu.path);
+          }
+        },
+      }));
+    };
+    return buildMenuItems(userMenus);
+  }, [userMenus, isCollapsed, handleMenuClick]);
 
-  const menuItems = buildMenuItems(userMenus);
-
-  // 根据当前路径找到选中的菜单项
-  const getSelectedKeys = () => {
+  // 使用 useMemo 优化选中项计算
+  const selectedKeys = useMemo(() => {
     const findSelectedKey = (menus: MenuItem[]): string[] => {
       for (const menu of menus) {
         if (menu.path === pathname) {
@@ -152,9 +160,10 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
       return [];
     };
     return findSelectedKey(userMenus);
-  };
+  }, [userMenus, pathname]);
 
-  const getOpenKeys = () => {
+  // 使用 useMemo 优化展开项计算
+  const openKeys = useMemo(() => {
     const findOpenKeys = (menus: MenuItem[]): string[] => {
       const openKeys: string[] = [];
       for (const menu of menus) {
@@ -171,7 +180,7 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
       return openKeys;
     };
     return findOpenKeys(userMenus);
-  };
+  }, [userMenus, pathname]);
 
   if (isLoading) {
     return (
@@ -192,8 +201,8 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
       <div className="flex-1 overflow-y-auto">
         <Menu
           mode="inline"
-          selectedKeys={getSelectedKeys()}
-          defaultOpenKeys={getOpenKeys()}
+          selectedKeys={selectedKeys}
+          defaultOpenKeys={openKeys}
           items={menuItems}
           className="border-0 bg-transparent"
           style={{
