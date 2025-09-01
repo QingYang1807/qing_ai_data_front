@@ -79,7 +79,7 @@ export default function LoginPage() {
           size="large"
           initialValues={{
             username: 'admin',
-            password: '123456'
+            password: 'asadfgh@123545!!f#'
           }}
         >
           <Form.Item
@@ -114,10 +114,10 @@ export default function LoginPage() {
             </Button>
           </Form.Item>
 
-          <div className="text-center text-sm text-gray-600">
+          {/* <div className="text-center text-sm text-gray-600">
             <p>默认账号：admin</p>
             <p>默认密码：123456</p>
-          </div>
+          </div> */}
         </Form>
       ),
     },
