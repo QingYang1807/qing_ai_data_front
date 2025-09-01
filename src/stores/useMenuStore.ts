@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { permissionAPI } from '@/api/system';
+import { defaultMenus } from '@/config/default_menu';
 
 export interface MenuItem {
   id: number;
@@ -19,6 +20,7 @@ interface MenuState {
   menus: MenuItem[];
   userMenus: MenuItem[];
   isLoading: boolean;
+  isUsingDefaultMenu: boolean; // 是否使用默认菜单
   
   // Actions
   loadAllMenus: () => Promise<void>;
@@ -27,12 +29,14 @@ interface MenuState {
   setMenus: (menus: MenuItem[]) => void;
   setUserMenus: (menus: MenuItem[]) => void;
   clearMenus: () => void;
+  resetToDefaultMenus: () => void;
 }
 
 export const useMenuStore = create<MenuState>((set, get) => ({
-  menus: [],
-  userMenus: [],
+  menus: defaultMenus,
+  userMenus: defaultMenus, // 初始化时使用默认菜单
   isLoading: false,
+  isUsingDefaultMenu: true, // 初始状态使用默认菜单
 
   loadAllMenus: async () => {
     set({ isLoading: true });
@@ -54,15 +58,21 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await permissionAPI.getUserMenus(userId);
-      if (response.code === 200) {
+      if (response.code === 200 && response.data && response.data.length > 0) {
+        // 数据库调用成功且有数据，使用数据库数据
         const userMenus = buildMenuTree(response.data);
-        set({ userMenus, isLoading: false });
+        set({ userMenus, isLoading: false, isUsingDefaultMenu: false });
+        console.log('使用数据库菜单数据');
       } else {
-        set({ isLoading: false });
+        // 数据库调用成功但无数据，保持默认菜单
+        console.log('数据库无菜单数据，使用默认菜单');
+        set({ isLoading: false, isUsingDefaultMenu: true });
       }
     } catch (error) {
+      // 数据库调用失败，保持默认菜单
       console.error('Load user menus error:', error);
-      set({ isLoading: false });
+      console.log('数据库调用失败，使用默认菜单');
+      set({ isLoading: false, isUsingDefaultMenu: true });
     }
   },
 
@@ -91,6 +101,10 @@ export const useMenuStore = create<MenuState>((set, get) => ({
 
   clearMenus: () => {
     set({ menus: [], userMenus: [] });
+  },
+
+  resetToDefaultMenus: () => {
+    set({ userMenus: defaultMenus, isUsingDefaultMenu: true });
   },
 }));
 

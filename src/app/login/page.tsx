@@ -16,13 +16,32 @@ export default function LoginPage() {
   const handleLogin = async (values: any) => {
     setLoading(true);
     try {
-      const success = await login(values.username, values.password);
-      if (success) {
-        message.success('登录成功');
-        router.push('/');
-      } else {
-        message.error('用户名或密码错误');
-      }
+      // 暂时跳过登录逻辑，直接进入系统
+      // const success = await login(values.username, values.password);
+      // if (success) {
+      //   message.success('登录成功');
+      //   router.push('/');
+      // } else {
+      //   message.error('用户名或密码错误');
+      // }
+      
+      // 设置模拟用户信息，跳过认证
+      const mockUser = {
+        id: 1,
+        username: values.username || 'admin',
+        realName: values.username || 'admin',
+        email: 'admin@example.com',
+        phone: '',
+        status: 1,
+        lastLoginTime: new Date().toISOString(),
+      };
+      
+      // 设置认证状态
+      useAuthStore.getState().setUser(mockUser);
+      
+      // 直接跳转到主系统
+      message.success('登录成功');
+      router.push('/dashboard');
     } catch (error) {
       message.error('登录失败，请重试');
     } finally {
@@ -58,6 +77,10 @@ export default function LoginPage() {
           autoComplete="off"
           layout="vertical"
           size="large"
+          initialValues={{
+            username: 'admin',
+            password: '123456'
+          }}
         >
           <Form.Item
             name="username"

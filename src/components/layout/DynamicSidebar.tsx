@@ -54,6 +54,45 @@ const iconMap: Record<string, React.ReactNode> = {
   'ExperimentOutlined': <FlaskConical className="w-5 h-5" />,
   'CodeOutlined': <Code className="w-5 h-5" />,
   'BookOutlined': <BookOpen className="w-5 h-5" />,
+  // 添加一些备用图标映射，以防数据库中的图标名称不匹配
+  'Database': <Database className="w-5 h-5" />,
+  'Server': <Server className="w-5 h-5" />,
+  'Download': <Download className="w-5 h-5" />,
+  'Filter': <Filter className="w-5 h-5" />,
+  'Edit': <Edit className="w-5 h-5" />,
+  'Plus': <Plus className="w-5 h-5" />,
+  'Merge': <Merge className="w-5 h-5" />,
+  'BarChart3': <BarChart3 className="w-5 h-5" />,
+  'RefreshCw': <RefreshCw className="w-5 h-5" />,
+  'ShoppingCart': <ShoppingCart className="w-5 h-5" />,
+  'List': <List className="w-5 h-5" />,
+  'Shield': <Shield className="w-5 h-5" />,
+  'CreditCard': <CreditCard className="w-5 h-5" />,
+  'Star': <Star className="w-5 h-5" />,
+  'EyeOff': <EyeOff className="w-5 h-5" />,
+  'Lock': <Lock className="w-5 h-5" />,
+  'FileText': <FileText className="w-5 h-5" />,
+  'Home': <Home className="w-5 h-5" />,
+  'TrendingUp': <TrendingUp className="w-5 h-5" />,
+  'Bot': <Bot className="w-5 h-5" />,
+  'Grid': <Grid className="w-5 h-5" />,
+  'Play': <Play className="w-5 h-5" />,
+  'CheckCircle': <CheckCircle className="w-5 h-5" />,
+  'Rocket': <Rocket className="w-5 h-5" />,
+  'Zap': <Zap className="w-5 h-5" />,
+  'Store': <Store className="w-5 h-5" />,
+  'Upload': <Upload className="w-5 h-5" />,
+  'Workflow': <Workflow className="w-5 h-5" />,
+  'GitBranch': <GitBranch className="w-5 h-5" />,
+  'Clock': <Clock className="w-5 h-5" />,
+  'Settings': <Settings className="w-5 h-5" />,
+  'User': <User className="w-5 h-5" />,
+  'Users': <Users className="w-5 h-5" />,
+  'Key': <Key className="w-5 h-5" />,
+  'FolderOpen': <FolderOpen className="w-5 h-5" />,
+  'FlaskConical': <FlaskConical className="w-5 h-5" />,
+  'Code': <Code className="w-5 h-5" />,
+  'BookOpen': <BookOpen className="w-5 h-5" />,
 };
 
 // 导入图标
@@ -68,11 +107,14 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuthStore();
-  const { userMenus, loadUserMenus, isLoading } = useMenuStore();
+  const { userMenus, loadUserMenus, isLoading, isUsingDefaultMenu } = useMenuStore();
 
   useEffect(() => {
     if (user?.id) {
-      loadUserMenus(user.id);
+      // 尝试从数据库加载菜单，失败时保持默认菜单
+      loadUserMenus(user.id).catch(() => {
+        console.log('菜单加载失败，使用默认菜单');
+      });
     }
   }, [user?.id, loadUserMenus]);
 
@@ -163,7 +205,7 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
 
       {/* Footer */}
       {!isCollapsed && (
-        <div className="p-4 border-t border-glass-200 flex-shrink-0">
+        <div className="p-4 border-t border-glass-200 flex-shrink-0 space-y-2">
           <div className="glass-card p-3">
             <div className="flex items-center space-x-2 mb-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -171,6 +213,17 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
             </div>
             <p className="text-xs text-gray-500">
               所有服务正常运行
+            </p>
+          </div>
+          
+          {/* 菜单状态指示器 */}
+          <div className="glass-card p-3">
+            <div className="flex items-center space-x-2 mb-2">
+              <div className={`w-2 h-2 rounded-full ${isUsingDefaultMenu ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
+              <span className="text-xs font-medium text-gray-600">菜单状态</span>
+            </div>
+            <p className="text-xs text-gray-500">
+              {isUsingDefaultMenu ? '使用默认菜单' : '使用数据库菜单'}
             </p>
           </div>
         </div>
