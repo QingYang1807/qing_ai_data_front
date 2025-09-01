@@ -53,16 +53,20 @@ export default function RatingPage() {
       title: '数据集名称',
       dataIndex: 'datasetName',
       key: 'datasetName',
+      width: 180,
+      ellipsis: true,
     },
     {
       title: '用户',
       dataIndex: 'user',
       key: 'user',
+      width: 100,
     },
     {
       title: '类型',
       dataIndex: 'type',
       key: 'type',
+      width: 80,
       render: (type: string) => (
         <Tag color={type === '评分' ? 'blue' : 'red'}>
           {type}
@@ -73,18 +77,21 @@ export default function RatingPage() {
       title: '评分',
       dataIndex: 'rating',
       key: 'rating',
+      width: 120,
       render: (rating: number) => <Rate disabled defaultValue={rating} />,
     },
     {
       title: '评论',
       dataIndex: 'comment',
       key: 'comment',
+      width: 200,
       ellipsis: true,
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (status: string) => {
         const colorMap = {
           approved: 'success',
@@ -98,30 +105,59 @@ export default function RatingPage() {
       title: '创建时间',
       dataIndex: 'createTime',
       key: 'createTime',
+      width: 150,
     },
     {
       title: '更新时间',
       dataIndex: 'updateTime',
       key: 'updateTime',
+      width: 150,
     },
     {
       title: '操作',
       key: 'action',
+      width: 200,
+      fixed: 'right',
       render: (_: any, record: any) => (
-        <Space size="middle">
-          <Button type="link" icon={<EyeOutlined />} onClick={() => handleView(record)}>
+        <div className="flex flex-wrap gap-1">
+          <Button 
+            type="link" 
+            size="small"
+            icon={<EyeOutlined />} 
+            onClick={() => handleView(record)}
+            className="px-1 py-0 h-auto"
+          >
             查看
           </Button>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button 
+            type="link" 
+            size="small"
+            icon={<EditOutlined />} 
+            onClick={() => handleEdit(record)}
+            className="px-1 py-0 h-auto"
+          >
             编辑
           </Button>
-          <Button type="link" icon={<StarOutlined />} onClick={() => handleApprove(record)}>
+          <Button 
+            type="link" 
+            size="small"
+            icon={<StarOutlined />} 
+            onClick={() => handleApprove(record)}
+            className="px-1 py-0 h-auto"
+          >
             审核
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>
+          <Button 
+            type="link" 
+            size="small"
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => handleDelete(record)}
+            className="px-1 py-0 h-auto"
+          >
             删除
           </Button>
-        </Space>
+        </div>
       ),
     },
   ];
@@ -179,6 +215,7 @@ export default function RatingPage() {
           columns={columns}
           dataSource={mockData}
           rowKey="id"
+          scroll={{ x: 1200 }}
           pagination={{
             total: mockData.length,
             pageSize: 10,
