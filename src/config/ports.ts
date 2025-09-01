@@ -53,7 +53,7 @@ export const API_PATHS = {
   [MODULE_PORTS.DATASOURCE]: '/api/v1/datasources',
   [MODULE_PORTS.DATASET]: '/api/v1/datasets',
   [MODULE_PORTS.COLLECT]: '/api/v1/collect',
-  [MODULE_PORTS.PROCESS]: '/api/v1/process',
+  [MODULE_PORTS.PROCESS]: '/api/processing',
   [MODULE_PORTS.ANNOTATION]: '/api/v1/annotation',
   [MODULE_PORTS.AUGMENT]: '/api/v1/augment',
   [MODULE_PORTS.SYNTHESIS]: '/api/v1/synthesis',
@@ -62,7 +62,7 @@ export const API_PATHS = {
   [MODULE_PORTS.SECURITY]: '/api/v1/security',
   [MODULE_PORTS.OPERATION]: '/api/v1/operation',
   [MODULE_PORTS.EXPORT]: '/api/v1/export',
-  [MODULE_PORTS.SYSTEM]: '/api/v1/system',
+  [MODULE_PORTS.SYSTEM]: '/api/v1',
   [MODULE_PORTS.GATEWAY]: '/api/v1/gateway',
 } as const;
 
@@ -98,7 +98,11 @@ export function getModuleUrl(port: ModulePort, path: string = ''): string {
   
   // 在开发环境中使用相对路径，通过Next.js代理
   if (process.env.NODE_ENV === 'development') {
-    // 只返回基础路径，不包含具体的API路径，避免重复
+    // 对于数据处理模块，直接使用其API路径
+    if (port === MODULE_PORTS.PROCESS) {
+      return `/api/processing${path}`;
+    }
+    // 其他模块使用标准路径
     return `/api/v1${path}`;
   }
   

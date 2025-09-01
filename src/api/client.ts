@@ -29,17 +29,28 @@ const createApiClient = (baseURL: string): AxiosInstance => {
 
   // 响应拦截器
   client.interceptors.response.use(
-    (response: AxiosResponse<ApiResponse>) => {
+    (response: AxiosResponse<any>) => {
       const { data } = response;
       
-      // 如果是业务成功响应
-      if (data.code === 200) {
-        return response;
+      // 检查是否是标准的Spring Boot响应格式
+      if (data && typeof data === 'object') {
+        // 如果后端返回的是 { code: 200, message: "xxx", data: {...} } 格式
+        if (data.code !== undefined) {
+          if (data.code === 200) {
+            return response;
+          } else {
+            // 处理业务错误
+            const error = new Error(data.message || '请求失败');
+            return Promise.reject(error);
+          }
+        } else {
+          // 如果后端直接返回数据，直接通过
+          return response;
+        }
       }
       
-      // 处理业务错误
-      const error = new Error(data.message || '请求失败');
-      return Promise.reject(error);
+      // 其他情况直接返回
+      return response;
     },
     (error: any) => {
       // 处理HTTP错误

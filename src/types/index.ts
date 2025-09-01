@@ -753,8 +753,8 @@ export interface ProcessingConfig {
     level?: number;
   };
   
-  // 知识库格式配置
-  knowledgeBase?: {
+  // 知识库格式配置（基础）
+  knowledgeBaseBasic?: {
     format: KnowledgeBaseFormat;
     chunkSize?: number;
     overlap?: number;
@@ -766,8 +766,8 @@ export interface ProcessingConfig {
     };
   };
   
-  // 训练格式配置
-  training?: {
+  // 训练格式配置（基础）
+  trainingBasic?: {
     format: TrainingFormat;
     instructionTemplate?: string;
     conversationTemplate?: {
@@ -778,6 +778,30 @@ export interface ProcessingConfig {
     completionTemplate?: string;
     classificationLabels?: string[];
   };
+  
+  // AI处理配置
+  aiProcessing?: AIProcessingConfig;
+  
+  // 知识库配置
+  knowledgeBase?: KnowledgeBaseConfig;
+  
+  // 训练数据集配置
+  training?: TrainingDatasetConfig;
+  
+  // 智能配置
+  intelligentConfig?: IntelligentConfig;
+  
+  // AI助手交互
+  aiAssistant?: AIAssistantInteraction;
+  
+  // 质量评估配置
+  qualityAssessment?: {
+    enabled: boolean;
+    metrics: string[];
+    threshold: number;
+    autoCorrection?: boolean;
+    detailedReport?: boolean;
+  };
 }
 
 
@@ -787,6 +811,7 @@ export interface ProcessingHistory {
   id: string;
   taskId: string;
   taskName: string;
+  description?: string;
   datasetId: string;
   datasetName: string;
   processingType: ProcessingType;
@@ -794,12 +819,209 @@ export interface ProcessingHistory {
   progress: number;
   startTime: string;
   endTime?: string;
+  completedTime?: string;
   duration?: number;
+  processingTime?: number;
   fileSize?: number;
   recordCount?: number;
   createdBy: string;
   outputPath?: string;
   errorMessage?: string;
+}
+
+// 数据处理结果
+export interface ProcessingResult {
+  taskId: string;
+  outputPath: string;
+  outputFormat: OutputFormat;
+  recordCount: number;
+  fileSize: number;
+  processingTime: number;
+  qualityReport?: {
+    completeness: number;
+    accuracy: number;
+    consistency: number;
+    timeliness: number;
+    validity: number;
+    issues: Array<{
+      type: string;
+      count: number;
+      description: string;
+    }>;
+  };
+  metadata?: Record<string, any>;
+  downloadUrl?: string;
+  previewUrl?: string;
+} 
+
+// 数据集版本管理相关类型
+export interface DatasetVersion {
+  id: string;
+  datasetId: number;
+  version: string;
+  versionName: string;
+  description?: string;
+  changeLog?: string;
+  fileCount: number;
+  totalSize: number;
+  processingTaskId?: string; // 关联的处理任务
+  processingType?: ProcessingType; // 处理类型
+  processingConfig?: ProcessingConfig; // 处理配置
+  isLatest: boolean;
+  isStable: boolean;
+  tags?: string[];
+  createdBy: string;
+  createdTime: string;
+  files?: DatasetFile[];
+  metadata?: Record<string, any>;
+  qualityMetrics?: {
+    completeness: number;
+    accuracy: number;
+    consistency: number;
+    timeliness: number;
+    validity: number;
+  };
+}
+
+// 数据集版本比较结果
+export interface VersionComparison {
+  version1: DatasetVersion;
+  version2: DatasetVersion;
+  differences: {
+    fileCount: number;
+    sizeDifference: number;
+    newFiles: DatasetFile[];
+    removedFiles: DatasetFile[];
+    modifiedFiles: Array<{
+      file: DatasetFile;
+      sizeChange: number;
+      changeType: 'modified' | 'upgraded' | 'downgraded';
+    }>;
+    qualityChanges: {
+      completeness: number;
+      accuracy: number;
+      consistency: number;
+      timeliness: number;
+      validity: number;
+    };
+  };
+}
+
+// 数据处理结果详情
+export interface ProcessingResultDetail {
+  taskId: string;
+  taskName: string;
+  datasetId: number;
+  datasetName: string;
+  processingType: ProcessingType;
+  status: ProcessingStatus;
+  
+  // 输入数据信息
+  inputData: {
+    fileCount: number;
+    totalSize: number;
+    recordCount: number;
+    sampleFiles: DatasetFile[];
+    qualityMetrics: {
+      completeness: number;
+      accuracy: number;
+      consistency: number;
+      timeliness: number;
+      validity: number;
+    };
+  };
+  
+  // 输出数据信息
+  outputData: {
+    fileCount: number;
+    totalSize: number;
+    recordCount: number;
+    outputFiles: DatasetFile[];
+    qualityMetrics: {
+      completeness: number;
+      accuracy: number;
+      consistency: number;
+      timeliness: number;
+      validity: number;
+    };
+    outputFormat: OutputFormat;
+    downloadUrl?: string;
+    previewUrl?: string;
+  };
+  
+  // 处理统计
+  processingStats: {
+    startTime: string;
+    endTime?: string;
+    duration?: number;
+    progress: number;
+    recordsProcessed: number;
+    recordsSkipped: number;
+    recordsFailed: number;
+    processingSpeed: number; // 记录/秒
+  };
+  
+  // 处理日志
+  logs: Array<{
+    timestamp: string;
+    level: 'INFO' | 'WARN' | 'ERROR';
+    message: string;
+    details?: any;
+    file?: string;
+    line?: number;
+  }>;
+  
+  // 错误信息
+  errors: Array<{
+    timestamp: string;
+    level: 'ERROR' | 'WARNING';
+    message: string;
+    details?: any;
+    file?: string;
+    line?: number;
+    recordId?: string;
+  }>;
+  
+  // 处理建议
+  suggestions: Array<{
+    type: 'quality' | 'performance' | 'optimization';
+    priority: 'high' | 'medium' | 'low';
+    title: string;
+    description: string;
+    action?: string;
+  }>;
+  
+  // 后续操作
+  nextSteps: Array<{
+    action: 'download' | 'preview' | 'analyze' | 'export' | 'version' | 'share';
+    title: string;
+    description: string;
+    url?: string;
+    enabled: boolean;
+  }>;
+}
+
+// 数据处理工作流
+export interface ProcessingWorkflow {
+  id: string;
+  name: string;
+  description?: string;
+  steps: Array<{
+    id: string;
+    name: string;
+    type: ProcessingType;
+    config: ProcessingConfig;
+    order: number;
+    isRequired: boolean;
+    estimatedTime: number;
+    dependencies?: string[]; // 依赖的步骤ID
+  }>;
+  createdBy: string;
+  createdTime: string;
+  updatedTime?: string;
+  isPublic: boolean;
+  usageCount: number;
+  tags?: string[];
 }
 
 // 数据处理模板
@@ -815,6 +1037,13 @@ export interface ProcessingTemplate {
   updatedTime?: string;
   usageCount: number;
   tags?: string[];
+  // 新增字段
+  category?: 'cleaning' | 'transformation' | 'enrichment' | 'export' | 'custom';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  estimatedTime?: number;
+  sampleInput?: any;
+  sampleOutput?: any;
+  documentation?: string;
 }
 
 // 数据处理统计
@@ -852,9 +1081,378 @@ export interface ProcessingPreview {
   };
   estimatedOutputSize: number;
   estimatedProcessingTime: number;
+} 
+
+// AI智能处理相关类型定义
+export enum AIProcessingType {
+  INTELLIGENT_CLEANING = "INTELLIGENT_CLEANING",     // 智能清洗
+  SEMANTIC_FILTERING = "SEMANTIC_FILTERING",       // 语义过滤
+  CONTENT_GENERATION = "CONTENT_GENERATION",       // 内容生成
+  QUALITY_ASSESSMENT = "QUALITY_ASSESSMENT",       // 质量评估
+  ENTITY_RECOGNITION = "ENTITY_RECOGNITION",       // 实体识别
+  SENTIMENT_ANALYSIS = "SENTIMENT_ANALYSIS",       // 情感分析
+  TOPIC_MODELING = "TOPIC_MODELING",               // 主题建模
+  KEYWORD_EXTRACTION = "KEYWORD_EXTRACTION",       // 关键词提取
+  QUESTION_GENERATION = "QUESTION_GENERATION",     // 问题生成
+  ANSWER_GENERATION = "ANSWER_GENERATION",         // 答案生成
+  SUMMARY_GENERATION = "SUMMARY_GENERATION",       // 摘要生成
+  PARAPHRASE_GENERATION = "PARAPHRASE_GENERATION", // 改写生成
 }
 
-// 数据处理结果
+// AI模型类型
+export enum AIModelType {
+  CHATGLM = "CHATGLM",
+  GPT = "GPT",
+  CLAUDE = "CLAUDE",
+  CUSTOM = "CUSTOM",
+}
+
+// AI处理配置
+export interface AIProcessingConfig {
+  modelType: AIModelType;
+  modelName?: string;
+  apiKey?: string;
+  endpoint?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  
+  // 智能清洗配置
+  intelligentCleaning?: {
+    semanticAnomalyDetection?: boolean;
+    patternAnomalyDetection?: boolean;
+    contextAnomalyDetection?: boolean;
+    missingValueImputation?: boolean;
+    errorCorrection?: boolean;
+    formatStandardization?: boolean;
+    semanticDeduplication?: boolean;
+    fuzzyMatching?: boolean;
+    contextAwareDedup?: boolean;
+  };
+  
+  // 语义处理配置
+  semanticProcessing?: {
+    entityRecognition?: boolean;
+    sentimentAnalysis?: boolean;
+    topicModeling?: boolean;
+    keywordExtraction?: boolean;
+    language?: string;
+    confidenceThreshold?: number;
+  };
+  
+  // 内容生成配置
+  contentGeneration?: {
+    questionGeneration?: boolean;
+    answerGeneration?: boolean;
+    summaryGeneration?: boolean;
+    paraphraseGeneration?: boolean;
+    generationTemplate?: string;
+    maxQuestions?: number;
+    questionTypes?: Array<'factual' | 'inferential' | 'open_ended'>;
+  };
+  
+  // 质量评估配置
+  qualityAssessment?: {
+    relevanceScoring?: boolean;
+    coherenceScoring?: boolean;
+    completenessScoring?: boolean;
+    accuracyScoring?: boolean;
+    scoringThreshold?: number;
+    qualityMetrics?: string[];
+  };
+}
+
+// 知识库问答数据集配置
+export interface KnowledgeBaseConfig {
+  format: KnowledgeBaseFormat;
+  chunkSize: number;
+  overlap: number;
+  metadata?: Record<string, any>;
+  
+  // 文档解析配置
+  documentParsing?: {
+    supportedFormats: Array<'pdf' | 'docx' | 'xlsx' | 'html' | 'md' | 'txt'>;
+    extractImages?: boolean;
+    extractTables?: boolean;
+    extractHeaders?: boolean;
+    preserveFormatting?: boolean;
+  };
+  
+  // 智能分块配置
+  intelligentChunking?: {
+    method: 'semantic' | 'fixed' | 'adaptive';
+    semanticThreshold?: number;
+    maxChunkSize?: number;
+    minChunkSize?: number;
+    preserveContext?: boolean;
+  };
+  
+  // 问答生成配置
+  qaGeneration?: {
+    questionTypes: Array<'factual' | 'inferential' | 'open_ended' | 'multiple_choice'>;
+    answerTypes: Array<'extractive' | 'generative' | 'hybrid'>;
+    questionTemplates?: string[];
+    answerTemplates?: string[];
+    maxQuestionsPerChunk?: number;
+    qualityThreshold?: number;
+  };
+  
+  // 向量化配置
+  vectorization?: {
+    model: string;
+    dimension: number;
+    normalize?: boolean;
+    batchSize?: number;
+  };
+}
+
+// 模型训练数据集配置
+export interface TrainingDatasetConfig {
+  format: TrainingFormat;
+  
+  // 指令学习配置
+  instructionTuning?: {
+    instructionTemplate: string;
+    inputTemplate?: string;
+    outputTemplate?: string;
+    systemPrompt?: string;
+    maxLength?: number;
+    truncation?: boolean;
+  };
+  
+  // 对话训练配置
+  conversation?: {
+    systemTemplate: string;
+    userTemplate: string;
+    assistantTemplate: string;
+    maxTurns?: number;
+    includeSystemMessage?: boolean;
+  };
+  
+  // 文本生成配置
+  textGeneration?: {
+    promptTemplate: string;
+    completionTemplate?: string;
+    maxLength?: number;
+    temperature?: number;
+  };
+  
+  // 分类任务配置
+  classification?: {
+    labels: string[];
+    labelMapping?: Record<string, string>;
+    multiLabel?: boolean;
+    confidenceThreshold?: number;
+  };
+  
+  // 数据增强配置
+  dataAugmentation?: {
+    enabled: boolean;
+    methods: Array<'paraphrase' | 'back_translation' | 'synonym_replacement' | 'sentence_insertion' | 'sentence_deletion'>;
+    augmentationRatio?: number;
+    preserveOriginal?: boolean;
+  };
+}
+
+// 智能配置界面类型
+export interface IntelligentConfig {
+  // 自然语言配置
+  naturalLanguage?: {
+    intent: string;
+    parameters: Record<string, any>;
+    confidence: number;
+    suggestions?: string[];
+  };
+  
+  // 可视化配置
+  visualConfig?: {
+    flowSteps: Array<{
+      id: string;
+      type: ProcessingType | AIProcessingType;
+      config: ProcessingConfig | AIProcessingConfig;
+      position: { x: number; y: number };
+      connections: string[];
+    }>;
+    layout: 'horizontal' | 'vertical' | 'grid';
+  };
+  
+  // 智能推荐
+  recommendations?: Array<{
+    type: 'config' | 'template' | 'best_practice';
+    title: string;
+    description: string;
+    confidence: number;
+    action: string;
+    config?: ProcessingConfig | AIProcessingConfig;
+  }>;
+}
+
+// AI助手交互类型
+export interface AIAssistantInteraction {
+  // 对话式配置
+  conversation?: {
+    messages: Array<{
+      role: 'user' | 'assistant' | 'system';
+      content: string;
+      timestamp: string;
+      metadata?: any;
+    }>;
+    context: Record<string, any>;
+    intent?: string;
+  };
+  
+  // 智能指导
+  guidance?: {
+    currentStep: string;
+    nextSteps: string[];
+    suggestions: string[];
+    warnings?: string[];
+    tips?: string[];
+  };
+  
+  // 学习与适应
+  learning?: {
+    userPreferences: Record<string, any>;
+    behaviorPatterns: Array<{
+      pattern: string;
+      frequency: number;
+      lastUsed: string;
+    }>;
+    personalizedSettings: Record<string, any>;
+  };
+}
+
+// 数据质量评估结果
+export interface QualityAssessmentResult {
+  // 完整性评估
+  completeness: {
+    score: number;
+    missingValueRate: number;
+    fieldCompleteness: Record<string, number>;
+    recordCompleteness: number;
+    issues: Array<{
+      field: string;
+      missingCount: number;
+      missingRate: number;
+    }>;
+  };
+  
+  // 准确性评估
+  accuracy: {
+    score: number;
+    semanticAccuracy: number;
+    factualAccuracy: number;
+    logicalConsistency: number;
+    issues: Array<{
+      type: string;
+      count: number;
+      description: string;
+      examples: any[];
+    }>;
+  };
+  
+  // 一致性评估
+  consistency: {
+    score: number;
+    formatConsistency: number;
+    valueConsistency: number;
+    temporalConsistency: number;
+    issues: Array<{
+      type: string;
+      field: string;
+      inconsistencyCount: number;
+      examples: any[];
+    }>;
+  };
+  
+  // 相关性评估
+  relevance: {
+    score: number;
+    domainRelevance: number;
+    taskRelevance: number;
+    contextRelevance: number;
+    issues: Array<{
+      type: string;
+      count: number;
+      description: string;
+    }>;
+  };
+  
+  // 可用性评估
+  usability: {
+    score: number;
+    readability: number;
+    accessibility: number;
+    interpretability: number;
+    issues: Array<{
+      type: string;
+      count: number;
+      description: string;
+    }>;
+  };
+  
+  // 总体评分
+  overallScore: number;
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  recommendations: Array<{
+    priority: 'high' | 'medium' | 'low';
+    title: string;
+    description: string;
+    action: string;
+    expectedImprovement: number;
+  }>;
+}
+
+
+
+// 扩展DataProcessingTask以支持AI处理
+export interface DataProcessingTask {
+  id: string;
+  name: string;
+  description?: string;
+  datasetId: string;
+  datasetName?: string;
+  processingType: ProcessingType;
+  config: ProcessingConfig;
+  inputPath: string;
+  outputPath: string;
+  status: ProcessingStatus;
+  progress: number;
+  startTime?: string;
+  endTime?: string;
+  errorMessage?: string;
+  createdTime: string;
+  createdBy: string;
+  updatedTime?: string;
+  fileSize?: number;
+  recordCount?: number;
+  processingTime?: number;
+  outputFormat?: OutputFormat;
+  tags?: string[];
+  
+  // AI处理相关字段
+  aiProcessingType?: AIProcessingType;
+  aiModelType?: AIModelType;
+  qualityAssessment?: QualityAssessmentResult;
+  intelligentConfig?: IntelligentConfig;
+  aiAssistant?: AIAssistantInteraction;
+  
+  // 知识库相关字段
+  knowledgeBaseConfig?: KnowledgeBaseConfig;
+  trainingConfig?: TrainingDatasetConfig;
+  
+  // 处理结果扩展
+  aiProcessingResults?: {
+    semanticAnalysis?: any;
+    contentGeneration?: any;
+    qualityAssessment?: QualityAssessmentResult;
+    recommendations?: string[];
+  };
+}
+
+// 扩展ProcessingResult以支持AI处理结果
 export interface ProcessingResult {
   taskId: string;
   outputPath: string;
@@ -877,4 +1475,217 @@ export interface ProcessingResult {
   metadata?: Record<string, any>;
   downloadUrl?: string;
   previewUrl?: string;
+  
+  // AI处理结果
+  aiProcessingResults?: {
+    semanticAnalysis?: any;
+    contentGeneration?: any;
+    qualityAssessment?: QualityAssessmentResult;
+    recommendations?: string[];
+  };
+  
+  // 知识库结果
+  knowledgeBaseResults?: {
+    chunks: Array<{
+      id: string;
+      content: string;
+      metadata: Record<string, any>;
+      embeddings?: number[];
+    }>;
+    qaPairs: Array<{
+      question: string;
+      answer: string;
+      context: string;
+      confidence: number;
+    }>;
+    vectorIndex?: string;
+  };
+  
+  // 训练数据集结果
+  trainingResults?: {
+    samples: any[];
+    format: TrainingFormat;
+    statistics: {
+      totalSamples: number;
+      validSamples: number;
+      invalidSamples: number;
+      byType: Record<string, number>;
+    };
+  };
+} 
+
+// 数据处理结果详情
+export interface ProcessingResultDetail {
+  taskId: string;
+  taskName: string;
+  datasetId: number;
+  datasetName: string;
+  processingType: ProcessingType;
+  status: ProcessingStatus;
+  
+  // 输入数据信息
+  inputData: {
+    fileCount: number;
+    totalSize: number;
+    recordCount: number;
+    sampleFiles: DatasetFile[];
+    qualityMetrics: {
+      completeness: number;
+      accuracy: number;
+      consistency: number;
+      timeliness: number;
+      validity: number;
+    };
+  };
+  
+  // 输出数据信息
+  outputData: {
+    fileCount: number;
+    totalSize: number;
+    recordCount: number;
+    outputFiles: DatasetFile[];
+    qualityMetrics: {
+      completeness: number;
+      accuracy: number;
+      consistency: number;
+      timeliness: number;
+      validity: number;
+    };
+    outputFormat: OutputFormat;
+    downloadUrl?: string;
+    previewUrl?: string;
+  };
+  
+  // 处理统计
+  processingStats: {
+    startTime: string;
+    endTime?: string;
+    duration?: number;
+    progress: number;
+    recordsProcessed: number;
+    recordsSkipped: number;
+    recordsFailed: number;
+    processingSpeed: number; // 记录/秒
+  };
+  
+  // 处理日志
+  logs: Array<{
+    timestamp: string;
+    level: 'INFO' | 'WARN' | 'ERROR';
+    message: string;
+    details?: any;
+    file?: string;
+    line?: number;
+  }>;
+  
+  // 错误信息
+  errors: Array<{
+    timestamp: string;
+    level: 'ERROR' | 'WARNING';
+    message: string;
+    details?: any;
+    file?: string;
+    line?: number;
+    recordId?: string;
+  }>;
+  
+  // 处理建议
+  suggestions: Array<{
+    type: 'quality' | 'performance' | 'optimization';
+    priority: 'high' | 'medium' | 'low';
+    title: string;
+    description: string;
+    action?: string;
+  }>;
+  
+  // 后续操作
+  nextSteps: Array<{
+    action: 'download' | 'preview' | 'analyze' | 'export' | 'version' | 'share';
+    title: string;
+    description: string;
+    url?: string;
+    enabled: boolean;
+  }>;
+}
+
+// 数据处理工作流
+export interface ProcessingWorkflow {
+  id: string;
+  name: string;
+  description?: string;
+  steps: Array<{
+    id: string;
+    name: string;
+    type: ProcessingType;
+    config: ProcessingConfig;
+    order: number;
+    isRequired: boolean;
+    estimatedTime: number;
+    dependencies?: string[]; // 依赖的步骤ID
+  }>;
+  createdBy: string;
+  createdTime: string;
+  updatedTime?: string;
+  isPublic: boolean;
+  usageCount: number;
+  tags?: string[];
+}
+
+// 数据处理模板
+export interface ProcessingTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  processingType: ProcessingType;
+  config: ProcessingConfig;
+  isPublic: boolean;
+  createdBy: string;
+  createdTime: string;
+  updatedTime?: string;
+  usageCount: number;
+  tags?: string[];
+  // 新增字段
+  category?: 'cleaning' | 'transformation' | 'enrichment' | 'export' | 'custom';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  estimatedTime?: number;
+  sampleInput?: any;
+  sampleOutput?: any;
+  documentation?: string;
+}
+
+// 数据处理统计
+export interface ProcessingStats {
+  totalTasks: number;
+  runningTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  totalProcessingTime: number;
+  totalRecordsProcessed: number;
+  totalFileSize: number;
+  byType: Record<ProcessingType, number>;
+  byStatus: Record<ProcessingStatus, number>;
+  byFormat: Record<OutputFormat, number>;
+  recentTasks: DataProcessingTask[];
+}
+
+// 数据处理预览
+export interface ProcessingPreview {
+  totalRecords: number;
+  sampleRecords: any[];
+  fieldInfo: Array<{
+    name: string;
+    type: string;
+    nullCount: number;
+    uniqueCount: number;
+    sampleValues: any[];
+  }>;
+  qualityMetrics: {
+    completeness: number;
+    accuracy: number;
+    consistency: number;
+    timeliness: number;
+    validity: number;
+  };
+  estimatedOutputSize: number;
+  estimatedProcessingTime: number;
 } 

@@ -12,7 +12,8 @@ import {
   Workflow,
   Brain,
   Bot,
-  Home
+  Home,
+  Download
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -25,8 +26,10 @@ interface SidebarProps {
 const menuItems = [
   { id: 'dashboard', name: '数据概览', icon: Home },
   { id: 'datasource', name: '数据源管理', icon: Database },
+  { id: 'collect', name: '数据采集', icon: Download },
   { id: 'dataset', name: '数据集管理', icon: FileText },
   { id: 'processing', name: '数据处理', icon: Filter },
+  { id: 'processing-demo', name: '流程演示', icon: Zap },
   { id: 'quality', name: '数据质量', icon: BarChart3 },
   { id: 'workflow', name: '工作流配置', icon: Workflow },
   { id: 'knowledge', name: '知识抽取', icon: Brain },

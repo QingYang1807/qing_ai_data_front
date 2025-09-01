@@ -27,11 +27,13 @@ import {
   Shield,
   Users,
   Globe,
-  Lock
+  Lock,
+  Zap
 } from 'lucide-react';
 import { Dataset, DatasetType, DatasetPermission } from '@/types';
 import DatasetFiles from '@/components/dataset/DatasetFiles';
 import DatasetForm from '@/components/dataset/DatasetForm';
+import DatasetProcessing from '@/components/dataset/DatasetProcessing';
 import { datasetApi } from '@/api/dataset';
 import { ToastContainer } from '@/components/common/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -76,6 +78,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
   const tabs = [
     { id: 'readme', name: '数据集详情README', icon: FileText },
     { id: 'files', name: '数据集文件列表', icon: Folder },
+    { id: 'processing', name: '数据处理', icon: Zap },
   ];
 
   // 格式化文件大小
@@ -594,6 +597,30 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                     {downloadLoading ? '下载中...' : '下载数据集'}
                   </button>
                   <button
+                    onClick={() => {
+                      // 跳转到数据处理页面并显示版本管理
+                      window.location.href = `/processing?datasetId=${currentDataset.id}&view=versions`;
+                    }}
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    版本管理
+                  </button>
+                  <button
+                    onClick={() => {
+                      // 跳转到数据处理页面
+                      window.location.href = `/processing?datasetId=${currentDataset.id}`;
+                    }}
+                    className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                  >
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    数据处理
+                  </button>
+                  <button
                     onClick={handleEditDataset}
                     className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
@@ -607,6 +634,10 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
           
           {activeTab === 'files' && (
             <DatasetFiles dataset={currentDataset} />
+          )}
+          
+          {activeTab === 'processing' && (
+            <DatasetProcessing dataset={currentDataset} onBack={() => setActiveTab('readme')} />
           )}
         </div>
       </div>

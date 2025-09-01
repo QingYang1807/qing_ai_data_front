@@ -69,7 +69,7 @@ export default function RootLayout({
             theme={antdTheme}
           >
             <App>
-              <div className="min-h-screen bg-gray-50">
+              <div className="bg-gray-50">
                 {children}
               </div>
             </App>

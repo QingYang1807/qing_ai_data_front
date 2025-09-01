@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bell, Search, User, Settings, LogOut, Menu } from 'lucide-react';
+import { Bell, Search, User, Settings, LogOut, Menu, BookOpen } from 'lucide-react';
+import Link from 'next/link';
 
 interface User {
   id: string;
@@ -77,6 +78,13 @@ const Header: React.FC<HeaderProps> = ({
 
       {/* Right Side Actions */}
       <div className="flex items-center space-x-4">
+        {/* Documentation */}
+        <Link href="/product-docs">
+          <button className="p-2 text-gray-600 hover:text-gray-800 transition-colors duration-200">
+            <BookOpen className="w-5 h-5" />
+          </button>
+        </Link>
+        
         {/* Notifications */}
         <button
           onClick={onNotificationClick}

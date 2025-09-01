@@ -1,5 +1,16 @@
 import { datasetApiClient } from './client';
-import { Dataset, DatasetFile, DatasetComment, DatasetCommentCreateRequest, DatasetCommentUpdateRequest, DatasetCommentQueryRequest } from '../types';
+import { 
+  Dataset, 
+  DatasetFile, 
+  DatasetComment, 
+  DatasetCommentCreateRequest, 
+  DatasetCommentUpdateRequest, 
+  DatasetCommentQueryRequest,
+  DatasetVersion,
+  VersionComparison,
+  ProcessingType,
+  ProcessingConfig
+} from '../types';
 
 // 数据集统计信息类型
 interface DatasetStatistics {
@@ -251,6 +262,127 @@ export const datasetApi = {
    */
   async ToggleCommentLike(commentId: number): Promise<ApiResponse<{ isLiked: boolean; likes: number }>> {
     const { data } = await datasetApiClient.post(`/datasets/comments/${commentId}/like`);
+    return data;
+  },
+
+  // 数据集版本管理API
+  /**
+   * 获取数据集版本列表
+   */
+  async GetDatasetVersions(datasetId: number, params: {
+    page?: number;
+    size?: number;
+    isLatest?: boolean;
+    isStable?: boolean;
+  } = {}): Promise<PageResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.get(`/datasets/${datasetId}/versions`, { params });
+    return data;
+  },
+
+  /**
+   * 获取数据集版本详情
+   */
+  async GetDatasetVersion(datasetId: number, versionId: string): Promise<ApiResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.get(`/datasets/${datasetId}/versions/${versionId}`);
+    return data;
+  },
+
+  /**
+   * 创建数据集版本
+   */
+  async CreateDatasetVersion(datasetId: number, version: {
+    version: string;
+    versionName: string;
+    description?: string;
+    changeLog?: string;
+    processingTaskId?: string;
+    processingType?: ProcessingType;
+    processingConfig?: ProcessingConfig;
+    isStable?: boolean;
+    tags?: string[];
+  }): Promise<ApiResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.post(`/datasets/${datasetId}/versions`, version);
+    return data;
+  },
+
+  /**
+   * 更新数据集版本
+   */
+  async UpdateDatasetVersion(datasetId: number, versionId: string, updates: Partial<DatasetVersion>): Promise<ApiResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.put(`/datasets/${datasetId}/versions/${versionId}`, updates);
+    return data;
+  },
+
+  /**
+   * 删除数据集版本
+   */
+  async DeleteDatasetVersion(datasetId: number, versionId: string): Promise<ApiResponse<void>> {
+    const { data } = await datasetApiClient.delete(`/datasets/${datasetId}/versions/${versionId}`);
+    return data;
+  },
+
+  /**
+   * 设置数据集版本为最新版本
+   */
+  async SetLatestVersion(datasetId: number, versionId: string): Promise<ApiResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.post(`/datasets/${datasetId}/versions/${versionId}/set-latest`);
+    return data;
+  },
+
+  /**
+   * 设置数据集版本为稳定版本
+   */
+  async SetStableVersion(datasetId: number, versionId: string): Promise<ApiResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.post(`/datasets/${datasetId}/versions/${versionId}/set-stable`);
+    return data;
+  },
+
+  /**
+   * 比较两个数据集版本
+   */
+  async CompareVersions(datasetId: number, version1Id: string, version2Id: string): Promise<ApiResponse<VersionComparison>> {
+    const { data } = await datasetApiClient.get(`/datasets/${datasetId}/versions/compare`, {
+      params: { version1: version1Id, version2: version2Id }
+    });
+    return data;
+  },
+
+  /**
+   * 获取数据集版本历史
+   */
+  async GetVersionHistory(datasetId: number, params: {
+    page?: number;
+    size?: number;
+    startDate?: string;
+    endDate?: string;
+  } = {}): Promise<PageResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.get(`/datasets/${datasetId}/versions/history`, { params });
+    return data;
+  },
+
+  /**
+   * 回滚到指定版本
+   */
+  async RollbackToVersion(datasetId: number, versionId: string): Promise<ApiResponse<DatasetVersion>> {
+    const { data } = await datasetApiClient.post(`/datasets/${datasetId}/versions/${versionId}/rollback`);
+    return data;
+  },
+
+  /**
+   * 获取数据集版本统计
+   */
+  async GetVersionStatistics(datasetId: number): Promise<ApiResponse<{
+    totalVersions: number;
+    latestVersion: DatasetVersion;
+    stableVersion?: DatasetVersion;
+    versionHistory: Array<{
+      version: string;
+      createdTime: string;
+      fileCount: number;
+      totalSize: number;
+    }>;
+  }>> {
+    const { data } = await datasetApiClient.get(`/datasets/${datasetId}/versions/statistics`);
     return data;
   },
 }; 

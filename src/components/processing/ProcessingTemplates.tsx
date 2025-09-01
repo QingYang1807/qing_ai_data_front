@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ProcessingTemplate, ProcessingType } from '@/types';
+import { Plus, Edit, Trash2, Copy, Eye } from 'lucide-react';
+import { ProcessingTemplate, ProcessingType, ProcessingConfig } from '@/types';
 import { processingApi } from '@/api/processing';
 import { useToast } from '@/hooks/useToast';
 
@@ -17,6 +18,9 @@ export default function ProcessingTemplates({ onBack, onUseTemplate }: Processin
     processingType: '' as ProcessingType | '',
     isPublic: false
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<ProcessingTemplate | null>(null);
+  const [viewingTemplate, setViewingTemplate] = useState<ProcessingTemplate | null>(null);
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -57,6 +61,53 @@ export default function ProcessingTemplates({ onBack, onUseTemplate }: Processin
     }
   };
 
+  const handleCreateTemplate = () => {
+    setEditingTemplate(null);
+    setShowCreateModal(true);
+  };
+
+  const handleEditTemplate = (template: ProcessingTemplate) => {
+    setEditingTemplate(template);
+    setShowCreateModal(true);
+  };
+
+  const handleViewTemplate = (template: ProcessingTemplate) => {
+    setViewingTemplate(template);
+  };
+
+  const handleCloneTemplate = async (template: ProcessingTemplate) => {
+    const newName = prompt('请输入新模板名称:', `${template.name} - 副本`);
+    if (!newName) return;
+
+    try {
+      const newTemplate = {
+        name: newName,
+        description: `${template.description} (克隆)`,
+        processingType: template.processingType,
+        config: template.config,
+        isPublic: false,
+        tags: template.tags
+      };
+
+      await processingApi.createTemplate(newTemplate);
+      showSuccess('克隆成功', '模板已成功克隆');
+      loadTemplates();
+    } catch (error) {
+      showError('克隆失败', '无法克隆模板');
+    }
+  };
+
+  const handleTemplateSuccess = () => {
+    showSuccess('操作成功', '模板已保存');
+    loadTemplates();
+    setShowCreateModal(false);
+    setEditingTemplate(null);
+  };
+
+  const handleTemplateError = (error: string) => {
+    showError('操作失败', error);
+  };
+
   const getProcessingTypeLabel = (type: ProcessingType) => {
     const typeLabels: Record<ProcessingType, string> = {
       [ProcessingType.CLEANING]: '数据清洗',
@@ -87,12 +138,21 @@ export default function ProcessingTemplates({ onBack, onUseTemplate }: Processin
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">处理模板</h2>
-          <button
-            onClick={onBack}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            返回
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleCreateTemplate}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>创建模板</span>
+            </button>
+            <button
+              onClick={onBack}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              返回
+            </button>
+          </div>
         </div>
       </div>
 
@@ -219,18 +279,41 @@ export default function ProcessingTemplates({ onBack, onUseTemplate }: Processin
                       {new Date(template.createdTime).toLocaleString('zh-CN')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                      <div className="flex items-center space-x-2">
                         <button
                           onClick={() => onUseTemplate(template)}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="p-1 text-blue-600 hover:text-blue-900"
+                          title="使用模板"
                         >
-                          使用
+                          <Plus className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleViewTemplate(template)}
+                          className="p-1 text-gray-600 hover:text-gray-900"
+                          title="查看详情"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditTemplate(template)}
+                          className="p-1 text-green-600 hover:text-green-900"
+                          title="编辑模板"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleCloneTemplate(template)}
+                          className="p-1 text-purple-600 hover:text-purple-900"
+                          title="克隆模板"
+                        >
+                          <Copy className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(template.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="p-1 text-red-600 hover:text-red-900"
+                          title="删除模板"
                         >
-                          删除
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
