@@ -69,9 +69,7 @@ export default function RootLayout({
             theme={antdTheme}
           >
             <App>
-              <div className="bg-gray-50">
-                {children}
-              </div>
+              {children}
             </App>
           </ConfigProvider>
         </QueryClientProvider>

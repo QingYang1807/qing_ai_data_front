@@ -7,6 +7,31 @@
     box-sizing: border-box;
   }
   
+  /* 防止页面闪烁 */
+  html {
+    background: #ffffff;
+  }
+  
+  /* 确保页面加载时背景色一致 */
+  body, #__next {
+    background: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  
+  /* 防止Ant Design组件闪烁 */
+  .ant-card,
+  .ant-button,
+  .ant-input,
+  .ant-select,
+  .ant-table {
+    transition: all 0.2s ease;
+  }
+  
+  /* 确保页面内容在加载时不会跳动 */
+  .ant-layout {
+    min-height: 100vh;
+  }
+  
   html, body {
     height: 100%;
     overflow-x: hidden;
@@ -18,6 +43,8 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
   }
 
   code {

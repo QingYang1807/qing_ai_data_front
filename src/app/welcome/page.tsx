@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Card, Row, Col, Typography, Space, Divider } from 'antd';
 import { 
   Database, 
@@ -27,6 +27,17 @@ import Link from 'next/link';
 const { Title, Paragraph } = Typography;
 
 export default function WelcomePage() {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // 确保页面完全加载后再显示内容
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const features = [
     {
       icon: <Database className="w-10 h-10 text-blue-600" />,
@@ -96,11 +107,23 @@ export default function WelcomePage() {
     }
   ];
 
+  if (!isLoaded) {
+    return (
+      <div className="bg-white w-full min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-gray-600">加载中...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white w-full">
+    <div className="bg-white w-full min-h-screen animate-fade-in">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
+      <section className="relative overflow-hidden text-white">
+      <div className="absolute inset-0 animate-gradient-flow bg-[length:400%_400%] bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500"></div>
+      <div className="absolute inset-0 bg-black opacity-30"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="text-center">
             <div className="flex justify-center mb-6">
@@ -108,10 +131,10 @@ export default function WelcomePage() {
                 <Brain className="w-12 h-12 text-white" />
               </div>
             </div>
-            <Title level={1} className="text-6xl font-bold mb-6 text-white">
+            <Title level={1} className="text-6xl font-bold mb-6 text-white" style={{ color: '#fff' }}>
               AI数据处理平台
             </Title>
-            <Paragraph className="text-xl text-blue-100 mb-8 max-w-4xl mx-auto leading-relaxed">
+            <Paragraph className="text-xl text-white mb-8 max-w-4xl mx-auto leading-relaxed">
               企业级AI数据处理解决方案，为机器学习模型提供高质量训练数据。
               从数据采集到质量评估，从智能标注到模型训练，一站式解决AI数据处理难题。
             </Paragraph>
@@ -183,7 +206,7 @@ export default function WelcomePage() {
               <Col key={index} xs={24} sm={12} lg={8}>
                 <Card 
                   className="h-full hover:shadow-xl transition-all duration-300 border-0 shadow-sm"
-                  bodyStyle={{ padding: '2rem' }}
+                  styles={{ body: { padding: '2rem' } }}
                 >
                   <div className="mb-6 flex justify-center">
                     {feature.icon}

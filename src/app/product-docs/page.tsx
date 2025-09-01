@@ -598,7 +598,8 @@ const ProductDocsPage: React.FC = () => {
           
           <div>
             <Title level={4}>Docker部署</Title>
-            <div className="bg-gray-100 p-4 rounded">
+            <div>暂不支持</div>
+            {/* <div className="bg-gray-100 p-4 rounded">
               <Text code className="text-sm">
                 {`# 克隆项目
 git clone https://github.com/qingai/qing-ai-data.git
@@ -613,7 +614,7 @@ docker-compose ps
 # 查看日志
 docker-compose logs -f`}
               </Text>
-            </div>
+            </div> */}
           </div>
         </div>
       </Card>
