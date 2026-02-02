@@ -26,10 +26,10 @@ const nextConfig = {
         source: '/nacos/:path*',
         destination: 'http://127.0.0.1:8848/nacos/:path*',
       },
-      // 所有API请求通过网关
+      // 所有API请求直连Processing Service (临时方案,因为网关未启动)
       {
         source: '/api/:path*',
-        destination: 'http://localhost:9114/api/:path*',
+        destination: 'http://localhost:9201/api/:path*',
       },
     ];
   },
