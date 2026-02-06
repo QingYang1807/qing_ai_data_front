@@ -145,15 +145,11 @@ const STATUS_MAP = {
   pending: { text: '等待中', status: 'default', color: 'default' },
 };
 
-interface ProcessingPageProps {
-  defaultType?: string;
-}
-
-export default function ProcessingPage({ defaultType }: ProcessingPageProps) {
+export default function ProcessingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string | undefined>(defaultType);
+  const [typeFilter, setTypeFilter] = useState<string | undefined>(undefined);
   const [dataTypeFilter, setDataTypeFilter] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
 
