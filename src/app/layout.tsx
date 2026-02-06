@@ -1,13 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Inter } from 'next/font/google';
 import { ConfigProvider, App } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import zhCN from 'antd/locale/zh_CN';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
 
 const antdTheme = {
   token: {
@@ -62,10 +59,10 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={inter.className}>
+      <body>
         <QueryClientProvider client={queryClient}>
-          <ConfigProvider 
-            locale={zhCN} 
+          <ConfigProvider
+            locale={zhCN}
             theme={antdTheme}
           >
             <App>
