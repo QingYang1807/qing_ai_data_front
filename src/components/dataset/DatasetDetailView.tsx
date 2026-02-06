@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
+import {
   ArrowLeft,
   FileText,
   Folder,
@@ -28,10 +28,12 @@ import {
   Users,
   Globe,
   Lock,
-  Zap
+  Zap,
+  GitBranch
 } from 'lucide-react';
 import { Dataset, DatasetType, DatasetPermission } from '@/types';
 import DatasetFiles from '@/components/dataset/DatasetFiles';
+import DatasetVersions from '@/components/dataset/DatasetVersions';
 import DatasetForm from '@/components/dataset/DatasetForm';
 import DatasetProcessing from '@/components/dataset/DatasetProcessing';
 import { datasetApi } from '@/api/dataset';
@@ -45,11 +47,11 @@ interface DatasetDetailViewProps {
   showBackButton?: boolean;
 }
 
-const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({ 
-  dataset, 
-  onBack, 
+const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
+  dataset,
+  onBack,
   onEdit,
-  showBackButton = true 
+  showBackButton = true
 }) => {
   const [activeTab, setActiveTab] = useState('readme');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -79,6 +81,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
     { id: 'readme', name: '数据集详情README', icon: FileText },
     { id: 'files', name: '数据集文件列表', icon: Folder },
     { id: 'processing', name: '数据处理', icon: Zap },
+    { id: 'versions', name: '版本管理', icon: GitBranch },
   ];
 
   // 格式化文件大小
@@ -99,7 +102,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
   // 简单的Markdown渲染函数
   const renderMarkdown = (content: string) => {
     if (!content) return '';
-    
+
     return content
       // 处理标题
       .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">$1</h3>')
@@ -139,7 +142,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
       const response = await datasetApi.GetDatasetPreview(Number(currentDataset.id));
       setPreviewData(response.data);
       setShowPreviewModal(true);
-      
+
       console.log('预览数据集:', currentDataset.name);
     } catch (error: any) {
       console.error('预览数据集失败:', error);
@@ -157,38 +160,38 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
     setDownloadLoading(true);
     try {
       console.log('开始下载数据集:', currentDataset.name, 'ID:', currentDataset.id);
-      
+
       // 调用下载API
       const blob = await datasetApi.DownloadDataset(Number(currentDataset.id));
-      
+
       console.log('下载响应blob:', blob, 'size:', blob.size, 'type:', blob.type);
-      
+
       // 检查blob是否有效
       if (!blob || blob.size === 0) {
         throw new Error('下载的文件为空或无效');
       }
-      
+
       // 创建下载链接
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
+
       // 生成文件名，确保安全的文件名
       const safeFileName = `${(currentDataset.name || 'dataset').replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}_${currentDataset.id}.zip`;
       link.download = safeFileName;
-      
+
       // 添加到DOM并触发下载
       document.body.appendChild(link);
       link.click();
-      
+
       // 清理资源
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(link);
       }, 100);
-      
+
       console.log('数据集下载成功:', currentDataset.name, '文件名:', safeFileName);
-      
+
       // 显示成功提示
       showSuccess('下载成功', `数据集"${currentDataset.name}"下载成功！\n文件名: ${safeFileName}`);
     } catch (error: any) {
@@ -199,9 +202,9 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
         status: error.response?.status,
         data: error.response?.data
       });
-      
+
       let errorMessage = '下载失败，请稍后重试';
-      
+
       if (error.response) {
         const status = error.response.status;
         switch (status) {
@@ -220,7 +223,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showError('下载失败', errorMessage);
     } finally {
       setDownloadLoading(false);
@@ -279,7 +282,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
   // 加载README数据
   const loadReadmeData = async () => {
     if (readmeData) return; // 如果已经加载过，不再重复加载
-    
+
     setReadmeLoading(true);
     try {
       const response = await datasetApi.GetDatasetReadme(Number(currentDataset.id));
@@ -324,21 +327,21 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <button 
+          <button
             onClick={handleEditDataset}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             <Edit3 className="h-4 w-4 mr-2" />
             编辑
           </button>
-          <button 
+          <button
             onClick={handleShareDataset}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Share2 className="h-4 w-4 mr-2" />
             分享
           </button>
-          <button 
+          <button
             onClick={handleDatasetSettings}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -354,12 +357,12 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
           <div className={`flex-shrink-0 w-32 h-32 ${typeConfig?.bgColor || 'bg-gray-100'} rounded-lg flex items-center justify-center`}>
             <TypeIcon className={`w-16 h-16 ${typeConfig?.color || 'text-gray-600'}`} />
           </div>
-          
+
           {/* 数据集信息 */}
           <div className="flex-1 min-w-0">
             {/* 数据集名称 */}
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{currentDataset.name}</h1>
-            
+
             {/* 数据集标签 */}
             <div className="mb-4">
               <div className="flex flex-wrap gap-2">
@@ -374,7 +377,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                 ))}
               </div>
             </div>
-            
+
             {/* 数据集描述 */}
             <p className="text-gray-600 text-lg leading-relaxed mb-4">
               {currentDataset.description || '暂无描述'}
@@ -423,7 +426,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              
+
               return (
                 <button
                   key={tab.id}
@@ -474,7 +477,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Fallback提示 */}
                     {!readmeData.hasReadmeFile && readmeData.fallbackReason && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
@@ -486,11 +489,11 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                         </div>
                       </div>
                     )}
-                    
+
                     {/* README内容 */}
                     <div className="prose max-w-none">
                       <div className="text-gray-700 leading-relaxed bg-gray-50 p-6 rounded-lg">
-                        <div 
+                        <div
                           className="markdown-content text-sm"
                           dangerouslySetInnerHTML={{ __html: renderMarkdown(readmeData.readmeContent) }}
                         />
@@ -560,9 +563,9 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">权限设置</span>
                     <span className="text-sm font-medium">
-                      {currentDataset.permission === 'PUBLIC' ? '公开' : 
-                       currentDataset.permission === 'PRIVATE' ? '私有' : 
-                       currentDataset.permission === 'TEAM' ? '团队' : '未知'}
+                      {currentDataset.permission === 'PUBLIC' ? '公开' :
+                        currentDataset.permission === 'PRIVATE' ? '私有' :
+                          currentDataset.permission === 'TEAM' ? '团队' : '未知'}
                     </span>
                   </div>
                 </div>
@@ -572,7 +575,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">操作</h2>
                 <div className="flex flex-wrap gap-3">
-                  <button 
+                  <button
                     onClick={handlePreviewDataset}
                     disabled={previewLoading}
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -584,7 +587,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                     )}
                     {previewLoading ? '预览中...' : '预览数据集'}
                   </button>
-                  <button 
+                  <button
                     onClick={handleDownloadDataset}
                     disabled={downloadLoading}
                     className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -598,8 +601,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      // 跳转到数据处理页面并显示版本管理
-                      window.location.href = `/processing?datasetId=${currentDataset.id}&view=versions`;
+                      setActiveTab('versions');
                     }}
                     className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
@@ -631,13 +633,17 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
               </div>
             </div>
           )}
-          
+
           {activeTab === 'files' && (
             <DatasetFiles dataset={currentDataset} />
           )}
-          
+
           {activeTab === 'processing' && (
             <DatasetProcessing dataset={currentDataset} onBack={() => setActiveTab('readme')} />
+          )}
+
+          {activeTab === 'versions' && (
+            <DatasetVersions dataset={currentDataset} />
           )}
         </div>
       </div>
@@ -788,23 +794,23 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                 <h4 className="text-lg font-medium text-gray-900 mb-4">权限设置</h4>
                 <div className="space-y-3">
                   {[
-                    { 
-                      value: DatasetPermission.PRIVATE, 
-                      label: '私有', 
+                    {
+                      value: DatasetPermission.PRIVATE,
+                      label: '私有',
                       description: '仅您可以访问和编辑此数据集',
                       icon: Lock,
                       color: 'text-orange-600 bg-orange-50 border-orange-200'
                     },
-                    { 
-                      value: DatasetPermission.TEAM, 
-                      label: '团队', 
+                    {
+                      value: DatasetPermission.TEAM,
+                      label: '团队',
                       description: '您的团队成员可以访问此数据集',
                       icon: Users,
                       color: 'text-blue-600 bg-blue-50 border-blue-200'
                     },
-                    { 
-                      value: DatasetPermission.PUBLIC, 
-                      label: '公开', 
+                    {
+                      value: DatasetPermission.PUBLIC,
+                      label: '公开',
                       description: '所有用户都可以查看此数据集',
                       icon: Globe,
                       color: 'text-green-600 bg-green-50 border-green-200'
@@ -812,16 +818,15 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                   ].map((option) => {
                     const Icon = option.icon;
                     const isSelected = currentDataset.permission === option.value;
-                    
+
                     return (
                       <button
                         key={option.value}
                         onClick={() => handleUpdatePermission(option.value)}
-                        className={`w-full text-left p-4 border rounded-lg transition-colors ${
-                          isSelected
-                            ? option.color
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}
+                        className={`w-full text-left p-4 border rounded-lg transition-colors ${isSelected
+                          ? option.color
+                          : 'border-gray-200 hover:bg-gray-50'
+                          }`}
                       >
                         <div className="flex items-center space-x-3">
                           <Icon className={`w-5 h-5 ${isSelected ? 'text-current' : 'text-gray-400'}`} />
@@ -853,7 +858,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <div className="font-medium text-gray-900">评论权限</div>
@@ -944,13 +949,13 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                       <div className="space-y-2">
                         <div className="text-sm text-gray-600">文本数据样本:</div>
                         <div className="bg-gray-100 p-3 rounded text-sm font-mono">
-                          这是一个文本数据集的示例内容...<br/>
-                          Lorem ipsum dolor sit amet, consectetur adipiscing elit.<br/>
+                          这是一个文本数据集的示例内容...<br />
+                          Lorem ipsum dolor sit amet, consectetur adipiscing elit.<br />
                           Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
                         </div>
                       </div>
                     )}
-                    
+
                     {currentDataset.type === 'IMAGE' && (
                       <div className="space-y-2">
                         <div className="text-sm text-gray-600">图像数据样本:</div>
@@ -963,7 +968,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                         </div>
                       </div>
                     )}
-                    
+
                     {currentDataset.type === 'STRUCTURED' && (
                       <div className="space-y-2">
                         <div className="text-sm text-gray-600">结构化数据样本:</div>
@@ -995,7 +1000,7 @@ const DatasetDetailView: React.FC<DatasetDetailViewProps> = ({
                         </div>
                       </div>
                     )}
-                    
+
                     {(currentDataset.type === 'VIDEO' || currentDataset.type === 'AUDIO') && (
                       <div className="space-y-2">
                         <div className="text-sm text-gray-600">{currentDataset.type === 'VIDEO' ? '视频' : '音频'}数据样本:</div>

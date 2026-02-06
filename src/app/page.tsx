@@ -6,9 +6,12 @@ import { useAuthStore } from '@/stores/useAuthStore';
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hasHydrated } = useAuthStore();
 
   useEffect(() => {
+    // 等待 store 水合完成后再进行路由判断
+    if (!hasHydrated) return;
+
     if (isAuthenticated) {
       // 如果已登录，跳转到主应用页面
       router.push('/dashboard');
@@ -16,7 +19,7 @@ export default function HomePage() {
       // 如果未登录，跳转到欢迎页面
       router.push('/welcome');
     }
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

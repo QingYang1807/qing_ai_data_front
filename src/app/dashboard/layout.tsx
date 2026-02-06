@@ -34,17 +34,17 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated } = useAuthStore();
   const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { toasts, removeToast } = useToast();
 
-  // 检查认证状态
+  // 检查认证状态 - 等待 store 水合完成后再检查
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hasHydrated && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
 
   const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
@@ -58,7 +58,8 @@ export default function DashboardLayout({
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
-  if (!isAuthenticated) {
+  // 在 store 水合完成前或未认证时显示加载器
+  if (!hasHydrated || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -108,7 +109,7 @@ export default function DashboardLayout({
               ×
             </button>
           </div>
-          
+
           {mockNotifications.length === 0 ? (
             <p className="text-gray-500 text-center py-4">暂无通知</p>
           ) : (
@@ -116,11 +117,10 @@ export default function DashboardLayout({
               {mockNotifications.slice(0, 10).map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 rounded-lg border transition-colors duration-200 ${
-                    notification.read 
-                      ? 'bg-glass-50 border-glass-200' 
-                      : 'bg-blue-50/50 border-blue-200'
-                  }`}
+                  className={`p-3 rounded-lg border transition-colors duration-200 ${notification.read
+                    ? 'bg-glass-50 border-glass-200'
+                    : 'bg-blue-50/50 border-blue-200'
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

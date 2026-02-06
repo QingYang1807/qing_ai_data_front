@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { 
-  BarChart3, 
-  Database, 
-  FileText, 
+import {
+  BarChart3,
+  Database,
+  FileText,
   TrendingUp,
   Users,
   Clock,
@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Activity
 } from 'lucide-react';
+import DataPipelineFlow from './DataPipelineFlow';
 
 interface DashboardProps {
   onTabChange?: (tab: string) => void;
@@ -123,6 +124,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
         <p className="text-gray-600">欢迎回到AI数据平台，查看您的数据处理概况</p>
       </div>
 
+      {/* Data Pipeline Flow */}
+      <div className="mb-6">
+        <DataPipelineFlow />
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => {
@@ -154,14 +160,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
         <div className="glass-card p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">最近任务</h3>
-            <button 
+            <button
               onClick={handleViewAllTasks}
               className="btn-glass-primary text-sm hover:bg-blue-600 transition-colors"
             >
               查看全部
             </button>
           </div>
-          
+
           <div className="space-y-4">
             {recentTasks.map((task) => (
               <div key={task.id} className="flex items-center justify-between p-4 bg-glass-50 rounded-lg">
@@ -172,7 +178,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
                       {getStatusText(task.status)}
                     </span>
                   </div>
-                  
+
                   {task.status === 'running' && (
                     <div className="mb-2">
                       <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
@@ -180,14 +186,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
                         <span>{task.progress}%</span>
                       </div>
                       <div className="w-full bg-glass-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${task.progress}%` }}
                         />
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="flex items-center text-sm text-gray-500 space-x-4">
                     <span className="flex items-center">
                       <Clock className="w-4 h-4 mr-1" />
@@ -210,7 +216,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
               <span className="text-sm text-gray-600">正常运行</span>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-glass-50 rounded-lg">
               <div className="flex items-center space-x-3">
@@ -219,7 +225,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
               </div>
               <span className="text-sm text-green-600 font-medium">正常</span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-glass-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <CheckCircle className="w-5 h-5 text-green-500" />
@@ -227,7 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
               </div>
               <span className="text-sm text-green-600 font-medium">正常</span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-glass-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <AlertCircle className="w-5 h-5 text-yellow-500" />
@@ -235,7 +241,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
               </div>
               <span className="text-sm text-yellow-600 font-medium">待检查</span>
             </div>
-            
+
             <div className="flex items-center justify-between p-3 bg-glass-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <CheckCircle className="w-5 h-5 text-green-500" />
@@ -251,21 +257,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange }) => {
       <div className="glass-card p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">快速操作</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button 
+          <button
             onClick={handleAddDataSource}
             className="btn-glass-primary flex items-center justify-center space-x-2 py-3 hover:bg-blue-600 transition-colors"
           >
             <Database className="w-5 h-5" />
             <span>添加数据源</span>
           </button>
-          <button 
+          <button
             onClick={handleCreateDataset}
             className="btn-glass flex items-center justify-center space-x-2 py-3 hover:bg-gray-100 transition-colors"
           >
             <FileText className="w-5 h-5" />
             <span>创建数据集</span>
           </button>
-          <button 
+          <button
             onClick={handleStartProcessing}
             className="btn-glass flex items-center justify-center space-x-2 py-3 hover:bg-gray-100 transition-colors"
           >

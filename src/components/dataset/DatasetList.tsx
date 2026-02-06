@@ -1,21 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Database, 
-  AlertCircle, 
-  CheckCircle, 
-  XCircle, 
-  Filter, 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Database,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Filter,
   MoreVertical,
-  Power, 
-  PowerOff, 
-  TestTube2, 
-  Copy, 
+  Power,
+  PowerOff,
+  TestTube2,
+  Copy,
   RefreshCw,
   Eye,
   Settings,
@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { Dataset, DatasetType, DatasetStatus, DatasetPermission } from '@/types';
 import { datasetApi } from '@/api/dataset';
+import { useDatasetStore } from '@/stores/useDatasetStore';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 // 数据集类型配置
@@ -106,7 +107,7 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
       case 'error':
         return {
           bg: 'bg-red-50',
-          border: 'border-red-200', 
+          border: 'border-red-200',
           text: 'text-red-800',
           borderLeft: 'border-red-500'
         };
@@ -152,21 +153,20 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
   const styles = getStyles();
 
   return (
-    <div 
-      className={`fixed top-4 right-4 transition-all duration-500 ${
-        isVisible ? 'transform translate-x-0 opacity-100' : 'transform translate-x-full opacity-0'
-      }`}
-      style={{ 
+    <div
+      className={`fixed top-4 right-4 transition-all duration-500 ${isVisible ? 'transform translate-x-0 opacity-100' : 'transform translate-x-full opacity-0'
+        }`}
+      style={{
         zIndex: 99999,
         pointerEvents: isVisible ? 'auto' : 'none'
       }}
     >
       <div className={`glass-card p-4 border-l-4 ${styles.borderLeft} shadow-2xl max-w-sm min-w-[320px] backdrop-blur-md`}
-           style={{ 
-             background: 'rgba(255, 255, 255, 0.95)',
-             backdropFilter: 'blur(12px)',
-             WebkitBackdropFilter: 'blur(12px)',
-           }}>
+        style={{
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}>
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
             {getIcon()}
@@ -193,14 +193,25 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
   );
 };
 
-const DatasetList: React.FC<DatasetListProps> = ({ 
-  onAddDataset, 
+const DatasetList: React.FC<DatasetListProps> = ({
+  onAddDataset,
   onEditDataset,
   onViewDataset
 }) => {
+  const {
+    datasets: storeDatasets,
+    loading: storeLoading,
+    total: storeTotal,
+    currentPage: storeCurrentPage,
+    pageSize: storePageSize,
+    fetchDatasets: storeFetchDatasets,
+    deleteDataset: storeDeleteDataset,
+    generateSampleData
+  } = useDatasetStore();
+
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
     visible: boolean;
@@ -213,18 +224,18 @@ const DatasetList: React.FC<DatasetListProps> = ({
     title: '',
     message: '',
     type: 'danger',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedPermission, setSelectedPermission] = useState<string>('all');
-  
+
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info' | 'warning';
@@ -273,8 +284,27 @@ const DatasetList: React.FC<DatasetListProps> = ({
       console.log('Fetching datasets with params:', params);
       const response = await datasetApi.GetDatasets(params);
       console.log('API response:', response);
-      setDatasets(response.data || []);
-      setTotal(response.total || 0);
+
+      // Handle both array and pagination object formats
+      const responseData = response.data;
+      if (Array.isArray(responseData)) {
+        setDatasets(responseData);
+      } else if (responseData && typeof responseData === 'object') {
+        // 检查 items 字段（我们的API使用 items）
+        if (Array.isArray((responseData as any).items)) {
+          setDatasets((responseData as any).items);
+        }
+        // 也支持 records 字段（兼容性）
+        else if (Array.isArray((responseData as any).records)) {
+          setDatasets((responseData as any).records);
+        } else {
+          setDatasets([]);
+        }
+      } else {
+        setDatasets([]);
+      }
+
+      setTotal(response.total || (responseData as any)?.total || 0);
     } catch (error: any) {
       console.error('Error fetching datasets:', error);
       setError(error.message || '获取数据集列表失败');
@@ -286,7 +316,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
 
   const refreshDatasets = async () => {
     if (isRefreshing) return;
-    
+
     setIsRefreshing(true);
     try {
       await fetchDatasets();
@@ -447,7 +477,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? '刷新中...' : '刷新'}</span>
           </button>
-          <button 
+          <button
             onClick={handleAddDataset}
             className="btn-glass-primary flex items-center space-x-2"
             title="创建新的数据集"
@@ -503,7 +533,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* Filters */}
       <div className="glass-card p-4">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
@@ -578,13 +608,29 @@ const DatasetList: React.FC<DatasetListProps> = ({
             <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">暂无数据集</h3>
             <p className="text-gray-500 mb-4">开始创建您的第一个数据集</p>
-            <button 
-              onClick={handleAddDataset}
-              className="btn-glass-primary"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              创建数据集
-            </button>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={handleAddDataset}
+                className="btn-glass-primary"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                创建数据集
+              </button>
+              <button
+                onClick={() => {
+                  generateSampleData();
+                  showNotification('success', '正在生成样例数据...');
+                  // 稍微延迟后刷新列表
+                  setTimeout(() => {
+                    storeFetchDatasets();
+                  }, 1000);
+                }}
+                className="btn-glass-secondary"
+              >
+                <Database className="w-4 h-4 mr-2" />
+                生成样例数据
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -592,7 +638,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
               {datasets.map((dataset) => {
                 const TypeIcon = datasetTypeConfig[dataset.type as DatasetType]?.icon || Database;
                 const typeConfig = datasetTypeConfig[dataset.type as DatasetType];
-                
+
                 return (
                   <div
                     key={dataset.id}
@@ -629,7 +675,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
                         <p className="text-gray-600 text-sm line-clamp-2 mb-3">
                           {dataset.description || '暂无描述'}
                         </p>
-                        
+
                         {/* Type and Status Badges */}
                         <div className="flex flex-wrap gap-2 mb-3">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getTypeColor(dataset.type)}`}>
@@ -722,7 +768,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
-                    
+
                     <div className="flex items-center space-x-1">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
@@ -735,23 +781,22 @@ const DatasetList: React.FC<DatasetListProps> = ({
                         } else {
                           pageNum = currentPage - 2 + i;
                         }
-                        
+
                         return (
                           <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
-                            className={`px-3 py-1 rounded-lg text-sm transition-colors duration-200 ${
-                              currentPage === pageNum
-                                ? 'bg-blue-500 text-white'
-                                : 'text-gray-700 hover:bg-gray-100'
-                            }`}
+                            className={`px-3 py-1 rounded-lg text-sm transition-colors duration-200 ${currentPage === pageNum
+                              ? 'bg-blue-500 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                              }`}
                           >
                             {pageNum}
                           </button>
                         );
                       })}
                     </div>
-                    
+
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage >= totalPages}

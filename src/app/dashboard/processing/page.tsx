@@ -1,196 +1,388 @@
 'use client';
 
-import React from 'react';
-import { Card, Button, Table, Tag, Space, Modal, Form, Input, Select, Progress, message } from 'antd';
-import { PlusOutlined, PlayCircleOutlined, PauseCircleOutlined, EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Card, Button, Table, Tag, Space, Modal, Form, Input, Select, Progress, message, Row, Col, Statistic, DatePicker, Badge, Tooltip } from 'antd';
+import {
+  PlusOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+  EyeOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  AreaChartOutlined,
+  FileSyncOutlined,
+  SafetyCertificateOutlined,
+  ExperimentOutlined
+} from '@ant-design/icons';
+import { useRouter } from 'next/navigation';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
+const { RangePicker } = DatePicker;
+
+// 数据类型配置
+const DATA_TYPES = {
+  text: { label: '纯文本', color: 'blue' },
+  image: { label: '图像', color: 'green' },
+  audio: { label: '语音', color: 'orange' },
+  video: { label: '视频', color: 'purple' },
+  code: { label: '代码', color: 'geekblue' },
+  sensor: { label: '端侧/传感器', color: 'cyan' },
+  multimodal: { label: '多模态', color: 'magenta' },
+};
 
 // 模拟数据
 const mockData = [
   {
-    id: 1,
-    name: '数据清洗任务',
-    type: '清洗',
+    id: 'T-20240115-001',
+    name: '电商评论数据清洗_V1',
+    type: 'cleaning',
+    dataType: 'text',
     status: 'running',
     progress: 65,
-    startTime: '2024-01-15 10:00:00',
-    endTime: '2024-01-15 18:00:00',
-    inputSize: '2.5GB',
-    outputSize: '2.1GB',
-    records: 150000,
+    creator: 'Admin',
+    createTime: '2024-01-15 10:00:00',
+    startTime: '2024-01-15 10:05:00',
+    description: '去除重复评论，过滤短文本',
+    stats: { total: 150000, processed: 97500 }
   },
   {
-    id: 2,
-    name: '数据转换任务',
-    type: '转换',
+    id: 'T-20240114-003',
+    name: '医疗问答数据增强',
+    type: 'augmentation',
+    dataType: 'text',
     status: 'completed',
     progress: 100,
-    startTime: '2024-01-14 09:00:00',
-    endTime: '2024-01-14 17:00:00',
-    inputSize: '1.8GB',
-    outputSize: '1.5GB',
-    records: 120000,
+    creator: 'Dr. Li',
+    createTime: '2024-01-14 09:00:00',
+    startTime: '2024-01-14 09:10:00',
+    endTime: '2024-01-14 11:30:00',
+    description: '通过回译增强数据多样性',
+    stats: { total: 5000, generated: 15000 }
   },
   {
-    id: 3,
-    name: '数据聚合任务',
-    type: '聚合',
+    id: 'T-20240113-005',
+    name: '用户信息脱敏',
+    type: 'desensitization',
+    dataType: 'text',
     status: 'failed',
     progress: 30,
-    startTime: '2024-01-13 08:00:00',
-    endTime: '2024-01-13 10:00:00',
-    inputSize: '500MB',
-    outputSize: '0MB',
-    records: 50000,
+    creator: 'SecurityTeam',
+    createTime: '2024-01-13 08:00:00',
+    startTime: '2024-01-13 08:05:00',
+    endTime: '2024-01-13 08:35:00',
+    description: '手机号、身份证打码',
+    errorMessage: 'Unexpected EOF in source file part-003.csv',
+    stats: { total: 50000, processed: 15000 }
   },
+  {
+    id: 'T-20240112-002',
+    name: '金融对话合成',
+    type: 'synthesis',
+    dataType: 'text',
+    status: 'completed',
+    progress: 100,
+    creator: 'Admin',
+    createTime: '2024-01-12 14:00:00',
+    startTime: '2024-01-12 14:10:00',
+    endTime: '2024-01-12 18:00:00',
+    description: '基于大模型合成理财咨询对话',
+    stats: { promptCount: 1000, outputCount: 1000 }
+  },
+  {
+    id: 'T-20240116-001',
+    name: '法律文书格式化',
+    type: 'cleaning',
+    dataType: 'text',
+    status: 'pending',
+    progress: 0,
+    creator: 'LawUser',
+    createTime: '2024-01-16 09:00:00',
+    description: '统一段落格式，去除乱码',
+    stats: { total: 2000, processed: 0 }
+  },
+  {
+    id: 'T-20240117-001',
+    name: '自动驾驶视频抽帧',
+    type: 'cleaning',
+    dataType: 'video',
+    status: 'running',
+    progress: 45,
+    creator: 'AutoTeam',
+    createTime: '2024-01-17 11:00:00',
+    description: '提取关键帧，去除模糊帧',
+    stats: { total: 500, processed: 225 }
+  },
+  {
+    id: 'T-20240117-002',
+    name: 'GitHub Python代码清洗',
+    type: 'cleaning',
+    dataType: 'code',
+    status: 'completed',
+    progress: 100,
+    creator: 'CodeMaster',
+    createTime: '2024-01-15 14:30:00',
+    description: '去除注释，格式化代码风格',
+    stats: { total: 50000, processed: 49500 }
+  }
 ];
 
-export default function ProcessingPage() {
-  const [isModalVisible, setIsModalVisible] = React.useState(false);
-  const [form] = Form.useForm();
+// 任务类型配置
+const TASK_TYPES = {
+  cleaning: { label: '数据清洗', color: 'blue', icon: <FileSyncOutlined /> },
+  augmentation: { label: '数据增强', color: 'cyan', icon: <AreaChartOutlined /> },
+  desensitization: { label: '隐私脱敏', color: 'purple', icon: <SafetyCertificateOutlined /> },
+  synthesis: { label: '数据合成', color: 'magenta', icon: <ExperimentOutlined /> },
+};
+
+// 状态映射
+const STATUS_MAP = {
+  running: { text: '进行中', status: 'processing', color: 'blue' },
+  completed: { text: '已完成', status: 'success', color: 'green' },
+  failed: { text: '失败', status: 'error', color: 'red' },
+  pending: { text: '等待中', status: 'default', color: 'default' },
+};
+
+interface ProcessingPageProps {
+  defaultType?: string;
+}
+
+export default function ProcessingPage({ defaultType }: ProcessingPageProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string | undefined>(defaultType);
+  const [dataTypeFilter, setDataTypeFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+
+  // 统计数据
+  const stats = {
+    total: mockData.length,
+    running: mockData.filter(d => d.status === 'running').length,
+    completed: mockData.filter(d => d.status === 'completed').length,
+    failed: mockData.filter(d => d.status === 'failed').length,
+  };
 
   const columns = [
     {
-      title: '任务名称',
-      dataIndex: 'name',
+      title: '任务名称 / ID',
       key: 'name',
+      render: (_: any, record: any) => (
+        <Space direction="vertical" size={0}>
+          <span className="font-medium text-base">{record.name}</span>
+          <span className="text-gray-400 text-xs">{record.id}</span>
+        </Space>
+      ),
     },
     {
-      title: '处理类型',
+      title: '数据类型',
+      dataIndex: 'dataType',
+      key: 'dataType',
+      render: (dataType: string) => {
+        const config = DATA_TYPES[dataType as keyof typeof DATA_TYPES] || { label: dataType, color: 'default' };
+        return <Tag color={config.color}>{config.label}</Tag>;
+      }
+    },
+    {
+      title: '任务类型',
       dataIndex: 'type',
       key: 'type',
-      render: (type: string) => (
-        <Tag color={type === '清洗' ? 'blue' : type === '转换' ? 'green' : 'orange'}>
-          {type}
-        </Tag>
-      ),
+      render: (type: string) => {
+        const config = TASK_TYPES[type as keyof typeof TASK_TYPES] || { label: type, color: 'default' };
+        return (
+          <Tag color={config.color} icon={config.icon}>
+            {config.label}
+          </Tag>
+        );
+      },
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        const colorMap = {
-          running: 'processing',
-          completed: 'success',
-          failed: 'error',
-          pending: 'default',
-        };
-        return <Tag color={colorMap[status as keyof typeof colorMap]}>{status}</Tag>;
+        const config = STATUS_MAP[status as keyof typeof STATUS_MAP];
+        return <Badge status={config.status as any} text={config.text} />;
       },
     },
     {
       title: '进度',
-      dataIndex: 'progress',
       key: 'progress',
-      render: (progress: number) => <Progress percent={progress} size="small" />,
+      width: 200,
+      render: (_: any, record: any) => (
+        <Tooltip title={`${record.stats.processed || 0} / ${record.stats.total || 0}`}>
+          <Progress
+            percent={record.progress}
+            size="small"
+            status={record.status === 'failed' ? 'exception' : record.status === 'completed' ? 'success' : 'active'}
+          />
+        </Tooltip>
+      ),
     },
     {
-      title: '输入大小',
-      dataIndex: 'inputSize',
-      key: 'inputSize',
+      title: '创建时间',
+      dataIndex: 'createTime',
+      key: 'createTime',
+      sorter: (a: any, b: any) => dayjs(a.createTime).valueOf() - dayjs(b.createTime).valueOf(),
+      render: (text: string) => <span className="text-gray-500">{text}</span>
     },
     {
-      title: '输出大小',
-      dataIndex: 'outputSize',
-      key: 'outputSize',
-    },
-    {
-      title: '记录数',
-      dataIndex: 'records',
-      key: 'records',
-      render: (records: number) => records.toLocaleString(),
-    },
-    {
-      title: '开始时间',
-      dataIndex: 'startTime',
-      key: 'startTime',
+      title: '创建人',
+      dataIndex: 'creator',
+      key: 'creator',
     },
     {
       title: '操作',
       key: 'action',
+      width: 180,
       render: (_: any, record: any) => (
-        <Space size="middle">
-          <Button type="link" icon={<EyeOutlined />} onClick={() => handleView(record)}>
-            查看
+        <Space size="small">
+          <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => router.push(`/dashboard/processing/${record.id}`)}>
+            详情
           </Button>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          {record.status === 'running' ? (
-            <Button type="link" icon={<PauseCircleOutlined />} onClick={() => handlePause(record)}>
-              暂停
-            </Button>
-          ) : (
-            <Button type="link" icon={<PlayCircleOutlined />} onClick={() => handleStart(record)}>
-              启动
+          {record.status === 'failed' && (
+            <Button type="text" size="small" icon={<ReloadOutlined />} onClick={() => handleRetry(record)}>
+              重试
             </Button>
           )}
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>
-            删除
-          </Button>
+          {['pending', 'running'].includes(record.status) && (
+            <Button type="text" size="small" danger icon={<PauseCircleOutlined />} onClick={() => handleStop(record)}>
+              停止
+            </Button>
+          )}
+          {!['pending', 'running'].includes(record.status) && (
+            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>
+              删除
+            </Button>
+          )}
         </Space>
       ),
     },
   ];
 
-  const handleView = (record: any) => {
-    message.info(`查看任务: ${record.name}`);
+  const handleRetry = (record: any) => {
+    message.loading(`正在重试任务 ${record.name}...`);
+    setTimeout(() => message.success('重试指令已发送'), 1000);
   };
 
-  const handleEdit = (record: any) => {
-    message.info(`编辑任务: ${record.name}`);
-  };
-
-  const handleStart = (record: any) => {
-    message.success(`启动任务: ${record.name}`);
-  };
-
-  const handlePause = (record: any) => {
-    message.warning(`暂停任务: ${record.name}`);
+  const handleStop = (record: any) => {
+    Modal.confirm({
+      title: '确认停止任务?',
+      content: `确定要停止正在运行的任务 "${record.name}" 吗？`,
+      okType: 'danger',
+      onOk() {
+        message.success('任务已停止');
+      },
+    });
   };
 
   const handleDelete = (record: any) => {
     Modal.confirm({
       title: '确认删除',
-      content: `确定要删除任务 "${record.name}" 吗？`,
+      content: '删除后无法恢复，确定要删除吗？',
+      okType: 'danger',
       onOk() {
         message.success('删除成功');
       },
     });
   };
 
-  const handleCreate = () => {
-    setIsModalVisible(true);
-  };
-
-  const handleModalOk = () => {
-    form.validateFields().then((values) => {
-      message.success('创建成功');
-      setIsModalVisible(false);
-      form.resetFields();
-    });
-  };
-
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    form.resetFields();
-  };
-
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <Card
-        title="数据处理管理"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新建处理任务
-          </Button>
-        }
-      >
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* 统计卡片 */}
+      <Row gutter={16}>
+        <Col span={6}>
+          <Card bordered={false} hoverable>
+            <Statistic title="总任务数" value={stats.total} prefix={<FileSyncOutlined />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card bordered={false} hoverable>
+            <Statistic title="进行中" value={stats.running} valueStyle={{ color: '#1890ff' }} prefix={<PlayCircleOutlined />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card bordered={false} hoverable>
+            <Statistic title="已完成" value={stats.completed} valueStyle={{ color: '#3f8600' }} prefix={<SafetyCertificateOutlined />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card bordered={false} hoverable>
+            <Statistic title="失败/异常" value={stats.failed} valueStyle={{ color: '#cf1322' }} prefix={<ExperimentOutlined />} />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 筛选与操作栏 */}
+      <Card bordered={false}>
+        <div className="flex justify-between mb-4">
+          <Space size="middle" wrap>
+            <Input
+              placeholder="搜索任务名称/ID"
+              prefix={<SearchOutlined />}
+              style={{ width: 200 }}
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+            />
+            <Select
+              placeholder="数据类型"
+              style={{ width: 140 }}
+              allowClear
+              value={dataTypeFilter}
+              onChange={setDataTypeFilter}
+            >
+              {Object.entries(DATA_TYPES).map(([key, config]) => (
+                <Option key={key} value={key}>{config.label}</Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="任务类型"
+              style={{ width: 150 }}
+              allowClear
+              value={typeFilter}
+              onChange={setTypeFilter}
+            >
+              {Object.entries(TASK_TYPES).map(([key, config]) => (
+                <Option key={key} value={key}>{config.label}</Option>
+              ))}
+            </Select>
+            <Select
+              placeholder="任务状态"
+              style={{ width: 120 }}
+              allowClear
+              value={statusFilter}
+              onChange={setStatusFilter}
+            >
+              {Object.entries(STATUS_MAP).map(([key, config]) => (
+                <Option key={key} value={key}>{config.text}</Option>
+              ))}
+            </Select>
+            <RangePicker style={{ width: 250 }} />
+          </Space>
+
+          <Space>
+            <Button icon={<ReloadOutlined />} onClick={() => { setLoading(true); setTimeout(() => setLoading(false), 1000); }}>
+              刷新
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push('/dashboard/processing/create')}>
+              新建处理任务
+            </Button>
+          </Space>
+        </div>
+
         <Table
+          loading={loading}
           columns={columns}
-          dataSource={mockData}
+          dataSource={mockData.filter(item => {
+            let pass = true;
+            if (searchText && !item.name.toLowerCase().includes(searchText.toLowerCase()) && !item.id.includes(searchText)) pass = false;
+            if (typeFilter && item.type !== typeFilter) pass = false;
+            if (dataTypeFilter && item.dataType !== dataTypeFilter) pass = false;
+            if (statusFilter && item.status !== statusFilter) pass = false;
+            return pass;
+          })}
           rowKey="id"
           pagination={{
             total: mockData.length,
@@ -201,50 +393,6 @@ export default function ProcessingPage() {
           }}
         />
       </Card>
-
-      <Modal
-        title="新建处理任务"
-        open={isModalVisible}
-        onOk={handleModalOk}
-        onCancel={handleModalCancel}
-        width={600}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="任务名称"
-            rules={[{ required: true, message: '请输入任务名称' }]}
-          >
-            <Input placeholder="请输入任务名称" />
-          </Form.Item>
-          <Form.Item
-            name="type"
-            label="处理类型"
-            rules={[{ required: true, message: '请选择处理类型' }]}
-          >
-            <Select placeholder="请选择处理类型">
-              <Option value="清洗">数据清洗</Option>
-              <Option value="转换">数据转换</Option>
-              <Option value="聚合">数据聚合</Option>
-              <Option value="过滤">数据过滤</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name="inputSource"
-            label="输入数据源"
-            rules={[{ required: true, message: '请输入输入数据源' }]}
-          >
-            <Input placeholder="请输入输入数据源" />
-          </Form.Item>
-          <Form.Item
-            name="outputTarget"
-            label="输出目标"
-            rules={[{ required: true, message: '请输入输出目标' }]}
-          >
-            <Input placeholder="请输入输出目标" />
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 }

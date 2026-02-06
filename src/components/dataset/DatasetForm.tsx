@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  FileText, 
-  Image, 
-  Video, 
-  Music, 
+import {
+  X,
+  FileText,
+  Image,
+  Video,
+  Music,
   Database,
   Upload,
   AlertCircle,
@@ -14,7 +14,7 @@ import {
   Loader
 } from 'lucide-react';
 import { Dataset, DatasetType, DatasetPermission } from '@/types';
-import { datasetApi } from '@/api/dataset';
+import { useDatasetStore } from '@/stores/useDatasetStore';
 
 interface DatasetFormProps {
   visible: boolean;
@@ -25,42 +25,42 @@ interface DatasetFormProps {
 
 // 数据集类型配置
 const datasetTypeOptions = [
-  { 
-    value: DatasetType.TEXT, 
-    label: '文本数据', 
-    icon: FileText, 
+  {
+    value: DatasetType.TEXT,
+    label: '文本数据',
+    icon: FileText,
     description: '自然语言处理、文本分析等文本类数据',
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 hover:bg-blue-100 border-blue-500'
   },
-  { 
-    value: DatasetType.IMAGE, 
-    label: '图像数据', 
-    icon: Image, 
+  {
+    value: DatasetType.IMAGE,
+    label: '图像数据',
+    icon: Image,
     description: '计算机视觉、图像识别等图像类数据',
     color: 'text-green-600',
     bgColor: 'bg-green-50 hover:bg-green-100 border-green-500'
   },
-  { 
-    value: DatasetType.VIDEO, 
-    label: '视频数据', 
-    icon: Video, 
+  {
+    value: DatasetType.VIDEO,
+    label: '视频数据',
+    icon: Video,
     description: '视频分析、行为识别等视频类数据',
     color: 'text-purple-600',
     bgColor: 'bg-purple-50 hover:bg-purple-100 border-purple-500'
   },
-  { 
-    value: DatasetType.AUDIO, 
-    label: '音频数据', 
-    icon: Music, 
+  {
+    value: DatasetType.AUDIO,
+    label: '音频数据',
+    icon: Music,
     description: '语音识别、音频分析等音频类数据',
     color: 'text-orange-600',
     bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-500'
   },
-  { 
-    value: DatasetType.STRUCTURED, 
-    label: '结构化数据', 
-    icon: Database, 
+  {
+    value: DatasetType.STRUCTURED,
+    label: '结构化数据',
+    icon: Database,
     description: '表格数据、数据库导出等结构化数据',
     color: 'text-indigo-600',
     bgColor: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-500'
@@ -69,19 +69,19 @@ const datasetTypeOptions = [
 
 // 权限类型配置
 const permissionOptions = [
-  { 
-    value: DatasetPermission.PRIVATE, 
-    label: '私有', 
+  {
+    value: DatasetPermission.PRIVATE,
+    label: '私有',
     description: '仅您可以访问和编辑此数据集'
   },
-  { 
-    value: DatasetPermission.TEAM, 
-    label: '团队', 
+  {
+    value: DatasetPermission.TEAM,
+    label: '团队',
     description: '您的团队成员可以访问此数据集'
   },
-  { 
-    value: DatasetPermission.PUBLIC, 
-    label: '公开', 
+  {
+    value: DatasetPermission.PUBLIC,
+    label: '公开',
     description: '所有用户都可以查看此数据集'
   },
 ];
@@ -111,9 +111,10 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
     tags: '',
   });
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
   const [selectedType, setSelectedType] = useState<DatasetType>(DatasetType.TEXT);
+  const { createDataset, updateDataset } = useDatasetStore();
 
   const isEditing = !!editingDataset;
 
@@ -163,7 +164,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
   }, [visible, onCancel]);
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     if (!formData.name.trim()) {
       newErrors.name = '数据集名称不能为空';
@@ -187,7 +188,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -208,7 +209,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
       let result: any;
       if (isEditing) {
         console.log('Updating dataset:', editingDataset!.id, datasetData);
-        result = await datasetApi.UpdateDataset(editingDataset!.id!, datasetData);
+        result = await updateDataset(editingDataset!.id!, datasetData);
       } else {
         // 创建数据集时，确保必需字段都有值
         const createData = {
@@ -221,17 +222,16 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
           tags: formData.tags.trim() || undefined,
         };
         console.log('Creating dataset:', createData);
-        result = await datasetApi.CreateDataset(createData);
+        result = await createDataset(createData);
       }
 
-      console.log('API result:', result);
-      console.log('Calling onSuccess with:', result.data);
-      onSuccess?.(result.data);
+      console.log('Store result:', result);
+      onSuccess?.(result);
       onCancel();
     } catch (error: any) {
       console.error('Dataset operation failed:', error);
-      setErrors({ 
-        submit: error.message || `${isEditing ? '更新' : '创建'}数据集失败` 
+      setErrors({
+        submit: error.message || `${isEditing ? '更新' : '创建'}数据集失败`
       });
     } finally {
       setLoading(false);
@@ -252,7 +252,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
       ...prev,
       [field]: value
     }));
-    
+
     // 清除对应字段的错误
     if (errors[field]) {
       setErrors(prev => ({
@@ -269,7 +269,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div 
+      <div
         className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -300,7 +300,7 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
             {/* 基本信息 */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">基本信息</h3>
-              
+
               {/* 数据集名称 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -311,9 +311,8 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="请输入数据集名称"
-                  className={`input-glass w-full ${
-                    errors.name ? 'border-red-300 focus:border-red-500' : ''
-                  }`}
+                  className={`input-glass w-full ${errors.name ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                   maxLength={50}
                 />
                 {errors.name && (
@@ -331,9 +330,8 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="请描述数据集的用途、来源、特点等信息"
                   rows={3}
-                  className={`input-glass w-full resize-none ${
-                    errors.description ? 'border-red-300 focus:border-red-500' : ''
-                  }`}
+                  className={`input-glass w-full resize-none ${errors.description ? 'border-red-300 focus:border-red-500' : ''
+                    }`}
                   maxLength={500}
                 />
                 <div className="flex justify-between items-center mt-1">
@@ -373,17 +371,16 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
                 {datasetTypeOptions.map((option) => {
                   const Icon = option.icon;
                   const isSelected = selectedType === option.value;
-                  
+
                   return (
                     <button
                       key={option.value}
                       type="button"
                       onClick={() => handleTypeSelect(option.value)}
-                      className={`p-4 border-2 rounded-lg transition-all duration-200 text-left ${
-                        isSelected 
-                          ? `${option.bgColor}` 
-                          : 'bg-white hover:bg-gray-50 border-gray-200'
-                      }`}
+                      className={`p-4 border-2 rounded-lg transition-all duration-200 text-left ${isSelected
+                        ? `${option.bgColor}`
+                        : 'bg-white hover:bg-gray-50 border-gray-200'
+                        }`}
                     >
                       <div className="flex items-center space-x-3 mb-2">
                         <Icon className={`w-5 h-5 ${isSelected ? option.color : 'text-gray-400'}`} />
@@ -447,11 +444,10 @@ const DatasetForm: React.FC<DatasetFormProps> = ({
                 {permissionOptions.map((option) => (
                   <label
                     key={option.value}
-                    className={`flex items-start space-x-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                      formData.permission === option.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+                    className={`flex items-start space-x-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.permission === option.value
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:bg-gray-50'
+                      }`}
                   >
                     <input
                       type="radio"

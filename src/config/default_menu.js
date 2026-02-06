@@ -25,6 +25,14 @@ const defaultMenu = [
     children: []
   },
   {
+    permissionCode: 'cleaning',
+    permissionName: '数据清洗',
+    path: '/dashboard/cleaning',
+    component: 'Cleaning',
+    icon: 'FilterOutlined',
+    children: []
+  },
+  {
     permissionCode: 'dataset',
     permissionName: '数据集管理',
     path: '/dashboard/dataset',
@@ -70,6 +78,30 @@ const defaultMenu = [
     path: '/dashboard/evaluation',
     component: 'Evaluation',
     icon: 'BarChartOutlined',
+    children: []
+  },
+  {
+    permissionCode: 'conversion',
+    permissionName: '格式转换',
+    path: '/dashboard/conversion',
+    component: 'Conversion',
+    icon: 'SyncOutlined',
+    children: []
+  },
+  {
+    permissionCode: 'feeding',
+    permissionName: '数据投喂',
+    path: '/dashboard/feeding',
+    component: 'Feeding',
+    icon: 'CloudServerOutlined',
+    children: []
+  },
+  {
+    permissionCode: 'training',
+    permissionName: '训练迭代',
+    path: '/dashboard/training',
+    component: 'Training',
+    icon: 'RocketOutlined',
     children: []
   },
   {
@@ -142,6 +174,14 @@ const defaultMenu = [
     path: '/dashboard/bias',
     component: 'Bias',
     icon: 'WarningOutlined',
+    children: []
+  },
+  {
+    permissionCode: 'infrastructure',
+    permissionName: '基础设施监控',
+    path: '/dashboard/infrastructure',
+    component: 'Infrastructure',
+    icon: 'DesktopOutlined',
     children: []
   },
   {

@@ -32,7 +32,7 @@ const iconMap: Record<string, React.ReactNode> = {
   'LockOutlined': <Lock className="w-5 h-5" />,
   'FileTextOutlined': <FileText className="w-5 h-5" />,
   'DashboardOutlined': <Home className="w-5 h-5" />,
-      'TrendingUpOutlined': <TrendingUp className="w-5 h-5" />,
+  'TrendingUpOutlined': <TrendingUp className="w-5 h-5" />,
   'ExportOutlined': <Download className="w-5 h-5" />,
   'RobotOutlined': <Bot className="w-5 h-5" />,
   'AppstoreOutlined': <Grid className="w-5 h-5" />,
@@ -60,7 +60,13 @@ const iconMap: Record<string, React.ReactNode> = {
   'Download': <Download className="w-5 h-5" />,
   'Filter': <Filter className="w-5 h-5" />,
   'Edit': <Edit className="w-5 h-5" />,
+  'Edit': <Edit className="w-5 h-5" />,
+  'Edit': <Edit className="w-5 h-5" />,
   'Plus': <Plus className="w-5 h-5" />,
+  'FilterOutlined': <Filter className="w-5 h-5" />,
+  'SyncOutlined': <RefreshCw className="w-5 h-5" />,
+  'CloudServerOutlined': <Server className="w-5 h-5" />,
+  'DesktopOutlined': <Monitor className="w-5 h-5" />,
   'Merge': <Merge className="w-5 h-5" />,
   'BarChart3': <BarChart3 className="w-5 h-5" />,
   'RefreshCw': <RefreshCw className="w-5 h-5" />,
@@ -100,7 +106,7 @@ import {
   Database, Server, Download, Filter, Edit, Plus, Merge, BarChart3, RefreshCw,
   ShoppingCart, List, Shield, CreditCard, Star, EyeOff, Lock, FileText, Home,
   TrendingUp, Bot, Grid, Play, CheckCircle, Rocket, Zap, Store, Upload, Workflow,
-  GitBranch, Clock, Settings, User, Users, Key, FolderOpen, FlaskConical, Code, BookOpen
+  GitBranch, Clock, Settings, User, Users, Key, FolderOpen, FlaskConical, Code, BookOpen, Monitor
 } from 'lucide-react';
 
 const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) => {
@@ -168,7 +174,7 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
       const openKeys: string[] = [];
       for (const menu of menus) {
         if (menu.children && menu.children.length > 0) {
-          const hasActiveChild = menu.children.some(child => 
+          const hasActiveChild = menu.children.some(child =>
             child.path === pathname || findOpenKeys([child]).length > 0
           );
           if (hasActiveChild) {
@@ -224,7 +230,7 @@ const DynamicSidebar: React.FC<DynamicSidebarProps> = ({ isCollapsed = false }) 
               所有服务正常运行
             </p>
           </div>
-          
+
           {/* 菜单状态指示器 */}
           <div className="glass-card p-3">
             <div className="flex items-center space-x-2 mb-2">

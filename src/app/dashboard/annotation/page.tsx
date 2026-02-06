@@ -1,242 +1,160 @@
 'use client';
 
-import React from 'react';
-import { Card, Button, Table, Tag, Space, Modal, Form, Input, Select, Progress, message } from 'antd';
-import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Input, Select, Space, message, Breadcrumb } from 'antd';
+import { PlusOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
+import { AnnotationTask, AnnotationStats as StatsType, AnnotationType } from '@/types/annotation'; // Assuming types export from there
+import AnnotationStats from '@/components/annotation/AnnotationStats';
+import AnnotationList from '@/components/annotation/AnnotationList';
+import AnnotationForm from '@/components/annotation/AnnotationForm';
+import Link from 'next/link';
 
 const { Option } = Select;
 
-// 模拟数据
-const mockData = [
-  {
-    id: 1,
-    name: '图像分类标注',
-    type: '图像',
-    status: 'running',
-    progress: 75,
-    startTime: '2024-01-15 10:00:00',
-    endTime: '2024-01-15 18:00:00',
-    totalImages: 10000,
-    labeledImages: 7500,
-    accuracy: 95.2,
-  },
-  {
-    id: 2,
-    name: '文本分类标注',
-    type: '文本',
-    status: 'completed',
-    progress: 100,
-    startTime: '2024-01-14 09:00:00',
-    endTime: '2024-01-14 17:00:00',
-    totalImages: 5000,
-    labeledImages: 5000,
-    accuracy: 98.5,
-  },
-  {
-    id: 3,
-    name: '语音识别标注',
-    type: '语音',
-    status: 'pending',
-    progress: 0,
-    startTime: '2024-01-16 08:00:00',
-    endTime: '2024-01-16 16:00:00',
-    totalImages: 3000,
-    labeledImages: 0,
-    accuracy: 0,
-  },
-];
+// ... imports remain the same
+
+// Mock Data Generation
+const generateMockTasks = (count: number): AnnotationTask[] => {
+  const types: AnnotationType[] = ['TEXT', 'IMAGE', 'AUDIO', 'VIDEO', 'CODE', '3D'];
+  const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'];
+
+  return Array.from({ length: count }).map((_, i) => ({
+    id: `task-${i + 1}`,
+    name: `标注任务 ${i + 1} - ${types[i % types.length]}`,
+    description: `这是一个针对 ${types[i % types.length]} 数据的示例标注任务。`,
+    type: types[i % types.length],
+    status: statuses[i % statuses.length] as any,
+    datasetId: `ds-${i % 5}`,
+    datasetName: `数据集 ${i % 5}`,
+    createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString(),
+    updatedAt: new Date(Date.now() - Math.random() * 100000000).toISOString(),
+    progress: Math.floor(Math.random() * 100),
+    totalItems: 100 + Math.floor(Math.random() * 1000),
+    completedItems: Math.floor(Math.random() * 100),
+  }));
+};
 
 export default function AnnotationPage() {
-  const [isModalVisible, setIsModalVisible] = React.useState(false);
-  const [form] = Form.useForm();
+  const [tasks, setTasks] = useState<AnnotationTask[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingTask, setEditingTask] = useState<AnnotationTask | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [filterType, setFilterType] = useState<string | null>(null);
 
-  const columns = [
-    {
-      title: '任务名称',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: '标注类型',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type: string) => (
-        <Tag color={type === '图像' ? 'blue' : type === '文本' ? 'green' : 'orange'}>
-          {type}
-        </Tag>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const colorMap = {
-          running: 'processing',
-          completed: 'success',
-          failed: 'error',
-          pending: 'default',
-        };
-        return <Tag color={colorMap[status as keyof typeof colorMap]}>{status}</Tag>;
-      },
-    },
-    {
-      title: '进度',
-      dataIndex: 'progress',
-      key: 'progress',
-      render: (progress: number) => <Progress percent={progress} size="small" />,
-    },
-    {
-      title: '总数量',
-      dataIndex: 'totalImages',
-      key: 'totalImages',
-      render: (total: number) => total.toLocaleString(),
-    },
-    {
-      title: '已标注',
-      dataIndex: 'labeledImages',
-      key: 'labeledImages',
-      render: (labeled: number) => labeled.toLocaleString(),
-    },
-    {
-      title: '准确率',
-      dataIndex: 'accuracy',
-      key: 'accuracy',
-      render: (accuracy: number) => `${accuracy}%`,
-    },
-    {
-      title: '开始时间',
-      dataIndex: 'startTime',
-      key: 'startTime',
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_: any, record: any) => (
-        <Space size="middle">
-          <Button type="link" icon={<EyeOutlined />} onClick={() => handleView(record)}>
-            查看
-          </Button>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          <Button type="link" icon={<CheckCircleOutlined />} onClick={() => handleReview(record)}>
-            审核
-          </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>
-            删除
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+  useEffect(() => {
+    // Simulate API fetch
+    setLoading(true);
+    setTimeout(() => {
+      setTasks(generateMockTasks(12));
+      setLoading(false);
+    }, 800);
+  }, []);
 
-  const handleView = (record: any) => {
-    message.info(`查看标注任务: ${record.name}`);
+  const stats: StatsType = {
+    total: tasks.length,
+    inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
+    completed: tasks.filter(t => t.status === 'COMPLETED').length,
+    avgAccuracy: 94.5, // Mock value
   };
 
-  const handleEdit = (record: any) => {
-    message.info(`编辑标注任务: ${record.name}`);
-  };
-
-  const handleReview = (record: any) => {
-    message.info(`审核标注任务: ${record.name}`);
-  };
-
-  const handleDelete = (record: any) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除标注任务 "${record.name}" 吗？`,
-      onOk() {
-        message.success('删除成功');
-      },
-    });
-  };
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = task.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      task.datasetName.toLowerCase().includes(searchText.toLowerCase());
+    const matchesType = filterType ? task.type === filterType : true;
+    return matchesSearch && matchesType;
+  });
 
   const handleCreate = () => {
+    setEditingTask(null);
     setIsModalVisible(true);
   };
 
-  const handleModalOk = () => {
-    form.validateFields().then((values) => {
-      message.success('创建成功');
-      setIsModalVisible(false);
-      form.resetFields();
-    });
+  const handleEdit = (task: AnnotationTask) => {
+    setEditingTask(task);
+    setIsModalVisible(true);
   };
 
-  const handleModalCancel = () => {
+  const handleDelete = (task: AnnotationTask) => {
+    // Simulate deletion
+    message.success(`任务 "${task.name}" 删除成功`);
+    setTasks(tasks.filter(t => t.id !== task.id));
+  };
+
+  const handleFormSuccess = (values: any) => {
+    // Simulate create/update
+    if (editingTask) {
+      setTasks(tasks.map(t => t.id === editingTask.id ? { ...t, ...values } : t));
+      message.success('任务更新成功');
+    } else {
+      const newTask: AnnotationTask = {
+        id: `task-${Date.now()}`,
+        ...values,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        progress: 0,
+        totalItems: 500, // Mock
+        completedItems: 0,
+        datasetName: '新数据集', // Mock
+      };
+      setTasks([newTask, ...tasks]);
+      message.success('任务创建成功');
+    }
     setIsModalVisible(false);
-    form.resetFields();
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <Card
-        title="数据标注管理"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新建标注任务
-          </Button>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={mockData}
-          rowKey="id"
-          pagination={{
-            total: mockData.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`,
-          }}
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <Breadcrumb items={[{ title: '仪表盘' }, { title: '数据标注' }]} />
+
+      <div className='flex justify-between items-center'>
+        <h1 className="text-2xl font-bold text-gray-800">数据标注任务</h1>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+          新建任务
+        </Button>
+      </div>
+
+      <AnnotationStats stats={stats} />
+
+      <Card bordered={false} className="shadow-sm">
+        <div className="flex justify-between mb-4">
+          <Space>
+            <Input
+              placeholder="搜索任务..."
+              prefix={<SearchOutlined />}
+              onChange={e => setSearchText(e.target.value)}
+              style={{ width: 300 }}
+            />
+            <Select
+              placeholder="按类型筛选"
+              style={{ width: 150 }}
+              allowClear
+              onChange={setFilterType}
+            >
+              <Option value="TEXT">文本</Option>
+              <Option value="IMAGE">图像</Option>
+              <Option value="AUDIO">音频</Option>
+              <Option value="VIDEO">视频</Option>
+            </Select>
+          </Space>
+          <Button icon={<FilterOutlined />}>更多筛选</Button>
+        </div>
+
+        <AnnotationList
+          tasks={filteredTasks}
+          loading={loading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       </Card>
 
-      <Modal
-        title="新建标注任务"
-        open={isModalVisible}
-        onOk={handleModalOk}
-        onCancel={handleModalCancel}
-        width={600}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="任务名称"
-            rules={[{ required: true, message: '请输入任务名称' }]}
-          >
-            <Input placeholder="请输入任务名称" />
-          </Form.Item>
-          <Form.Item
-            name="type"
-            label="标注类型"
-            rules={[{ required: true, message: '请选择标注类型' }]}
-          >
-            <Select placeholder="请选择标注类型">
-              <Option value="图像">图像标注</Option>
-              <Option value="文本">文本标注</Option>
-              <Option value="语音">语音标注</Option>
-              <Option value="视频">视频标注</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name="dataSource"
-            label="数据源"
-            rules={[{ required: true, message: '请输入数据源' }]}
-          >
-            <Input placeholder="请输入数据源路径" />
-          </Form.Item>
-          <Form.Item
-            name="labelSchema"
-            label="标注方案"
-            rules={[{ required: true, message: '请输入标注方案' }]}
-          >
-            <Input.TextArea placeholder="请输入标注方案描述" rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <AnnotationForm
+        visible={isModalVisible}
+        onCancel={() => setIsModalVisible(false)}
+        onSuccess={handleFormSuccess}
+        initialValues={editingTask || undefined}
+      />
     </div>
   );
 }

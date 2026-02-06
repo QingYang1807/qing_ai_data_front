@@ -1,16 +1,28 @@
-import { datasetApiClient } from './client';
-import { 
-  Dataset, 
-  DatasetFile, 
-  DatasetComment, 
-  DatasetCommentCreateRequest, 
-  DatasetCommentUpdateRequest, 
+import axios from 'axios';
+import {
+  Dataset,
+  DatasetFile,
+  DatasetComment,
+  DatasetCommentCreateRequest,
+  DatasetCommentUpdateRequest,
   DatasetCommentQueryRequest,
   DatasetVersion,
   VersionComparison,
   ProcessingType,
   ProcessingConfig
 } from '../types';
+
+// 使用实际的API端口5000，而不是module配置的端口
+const API_BASE_URL = 'http://127.0.0.1:5000/api/v1';
+
+// 创建独立的axios实例，确保使用正确的端口
+const datasetApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 // 数据集统计信息类型
 interface DatasetStatistics {
@@ -41,6 +53,64 @@ interface PageResponse<T> extends ApiResponse<T[]> {
 /**
  * 数据集API服务
  */
+
+// 后端返回的数据集原始格式
+interface DatasetRaw {
+  ID: any;
+  Name: string;
+  TotalCount: number;
+  UniqueCount: number;
+  Status: string;
+  Created: string;
+  Updated: string;
+}
+
+// 生成基于名称的唯一ID（作为fallback）
+const generateDatasetId = (name: string): string => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    const char = name.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString();
+};
+
+// 转换后端数据为前端格式
+const transformDataset = (raw: any): Dataset => {
+  // 尝试从ID对象中提取实际ID值
+  let actualId: string;
+  console.log('[transformDataset] Raw ID:', raw.ID, 'Type:', typeof raw.ID);
+
+  if (raw.ID && typeof raw.ID === 'object') {
+    // MongoDB ObjectID可能有不同的字段名
+    actualId = raw.ID.$oid || raw.ID._id || raw.ID.id || raw.ID.Hex ||
+      (raw.ID.toString && raw.ID.toString() !== '[object Object]' ? raw.ID.toString() : null) ||
+      JSON.stringify(raw.ID);
+    console.log('[transformDataset] Extracted ObjectID:', actualId);
+  } else if (raw.ID) {
+    actualId = String(raw.ID);
+  } else {
+    // Fallback: 使用名称生成ID
+    actualId = generateDatasetId(raw.Name || `dataset_${Date.now()}`);
+    console.log('[transformDataset] Generated fallback ID:', actualId);
+  }
+
+  return {
+    id: actualId,
+    name: raw.Name || '',
+    description: raw.Description || '',
+    type: raw.Type || 'text',
+    source: raw.Source || 'manual',
+    total_count: raw.TotalCount || 0,
+    unique_count: raw.UniqueCount || 0,
+    status: raw.Status || 'PENDING',
+    created: raw.Created || '',
+    updated: raw.Updated || '',
+    permission: raw.Permission || 'private',
+  };
+};
+
 export const datasetApi = {
   /**
    * 获取数据集列表
@@ -54,14 +124,27 @@ export const datasetApi = {
     permission?: string;
   } = {}): Promise<PageResponse<Dataset>> {
     const { data } = await datasetApiClient.get('/datasets', { params });
+
+    // 转换数据格式
+    if (data.data && Array.isArray(data.data.items)) {
+      data.data.items = data.data.items.map(transformDataset);
+    }
+
     return data;
   },
 
   /**
    * 根据ID获取数据集详情
    */
-  async GetDataset(id: number): Promise<ApiResponse<Dataset>> {
+  async GetDataset(id: number | string): Promise<ApiResponse<Dataset>> {
+    // ID现在是从后端提取的真实数据库ID
     const { data } = await datasetApiClient.get(`/datasets/${id}`);
+
+    // 转换数据格式
+    if (data.data) {
+      data.data = transformDataset(data.data);
+    }
+
     return data;
   },
 
@@ -132,12 +215,12 @@ export const datasetApi = {
   async DownloadDataset(datasetId: number): Promise<Blob> {
     // 使用独立的axios实例，避免响应拦截器处理blob数据
     const axios = require('axios');
-    
+
     // 使用统一的路径配置
-    const baseUrl = process.env.NODE_ENV === 'development' 
-      ? '/api/v1/datasets' 
+    const baseUrl = process.env.NODE_ENV === 'development'
+      ? '/api/v1/datasets'
       : `http://localhost:9101/api/v1/datasets`;
-    
+
     const response = await axios.get(`${baseUrl}/${datasetId}/download`, {
       responseType: 'blob',
       headers: {
@@ -219,8 +302,8 @@ export const datasetApi = {
     page?: number;
     size?: number;
   } = {}): Promise<PageResponse<Dataset>> {
-    const { data } = await datasetApiClient.get('/datasets', { 
-      params: { ...params, keyword } 
+    const { data } = await datasetApiClient.get('/datasets', {
+      params: { ...params, keyword }
     });
     return data;
   },

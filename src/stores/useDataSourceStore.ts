@@ -10,9 +10,19 @@ interface DataSourceState {
   currentPage: number;
   pageSize: number;
   serverConnected: boolean;
-  
+
+  // 统计信息
+  stats: {
+    total: number;
+    active: number;
+    inactive: number;
+    error: number;
+    enabled: number;
+  };
+
   // 操作方法
   fetchDataSources: (params?: DataSourceQueryRequest) => Promise<void>;
+  fetchStats: () => Promise<void>;
   refreshDataSources: (params?: DataSourceQueryRequest) => Promise<void>;
   checkServerConnection: () => Promise<boolean>;
   createDataSource: (data: any) => Promise<void>;
@@ -36,16 +46,24 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
   pageSize: 10,
   serverConnected: false, // 初始设为false，等API调用成功后再设为true
 
+  stats: {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    error: 0,
+    enabled: 0,
+  },
+
   fetchDataSources: async (params = {}) => {
     set({ loading: true, error: null });
     try {
       const currentState = get();
-      
+
       // 如果传入了新的page参数，先更新state
       if (params.page && params.page !== currentState.currentPage) {
         set({ currentPage: params.page });
       }
-      
+
       const requestParams = {
         page: params.page || currentState.currentPage,
         size: params.size || currentState.pageSize,
@@ -54,7 +72,7 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
 
       // 调用真实API
       const response = await datasourceApi.getList(requestParams);
-      
+
       set({
         dataSources: response.data.records,
         total: response.data.total,
@@ -63,20 +81,23 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
         loading: false,
         serverConnected: true,
       });
+
+      // 并行获取统计信息
+      get().fetchStats();
     } catch (error: any) {
       console.error('获取数据源列表失败:', error);
-      
+
       // 检查是否是网络错误（服务器未启动或宕机）
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
         error.request || // axios request 存在但没有响应
         !error.response; // 没有响应对象说明网络问题
-      
+
       if (isNetworkError) {
         // 网络错误时，静默处理，显示空列表并标记服务器未连接
-        set({ 
+        set({
           loading: false,
           dataSources: [],
           total: 0,
@@ -85,8 +106,8 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
         });
       } else {
         // 其他错误（如业务错误、权限错误等）仍然正常显示错误信息
-        set({ 
-          error: error.message || '获取数据源列表失败', 
+        set({
+          error: error.message || '获取数据源列表失败',
           loading: false,
           dataSources: [],
           total: 0,
@@ -100,12 +121,12 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
     // 静默刷新，不触发loading状态变化
     try {
       const currentState = get();
-      
+
       // 如果传入了新的page参数，先更新state
       if (params.page && params.page !== currentState.currentPage) {
         set({ currentPage: params.page });
       }
-      
+
       const requestParams = {
         page: params.page || currentState.currentPage,
         size: params.size || currentState.pageSize,
@@ -114,36 +135,38 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
 
       // 调用真实API
       const response = await datasourceApi.getList(requestParams);
-      
+
       // 只更新数据，不更新loading状态
       set({
         dataSources: response.data.records,
         total: response.data.total,
         currentPage: response.data.page,
         pageSize: response.data.size,
-        serverConnected: true,
         error: null, // 清除之前的错误
       });
+
+      // 刷新统计信息
+      get().fetchStats();
     } catch (error: any) {
       console.error('刷新数据源列表失败:', error);
-      
+
       // 检查是否是网络错误（服务器未启动或宕机）
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
         error.request || // axios request 存在但没有响应
         !error.response; // 没有响应对象说明网络问题
-      
+
       if (isNetworkError) {
         // 网络错误时，只更新服务器连接状态
-        set({ 
+        set({
           serverConnected: false,
         });
         throw new Error('无法连接到服务器，请检查服务器状态');
       } else {
         // 其他错误抛出，让调用者处理
-        set({ 
+        set({
           serverConnected: true, // 能收到响应说明服务器是连接的
         });
         throw error;
@@ -159,15 +182,15 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       return true;
     } catch (error: any) {
       console.log('服务器连接检查失败:', error.message);
-      
+
       // 检查是否是网络错误
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
-        error.request || 
+        error.request ||
         !error.response;
-      
+
       if (isNetworkError) {
         set({ serverConnected: false });
         return false;
@@ -176,6 +199,18 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
         set({ serverConnected: true });
         return true;
       }
+    }
+  },
+
+  fetchStats: async () => {
+    try {
+      const response = await datasourceApi.getStats();
+      if (response && response.data) {
+        set({ stats: response.data });
+      }
+    } catch (error) {
+      console.error('获取统计信息失败:', error);
+      // 不抛出错误，以免影响主列表显示
     }
   },
 
@@ -195,23 +230,23 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
 
       // 调用真实API创建数据源
       await datasourceApi.create(data);
-      
+
       // 创建成功后刷新数据，回到第一页
       set({ currentPage: 1, serverConnected: true });
       await get().fetchDataSources({ page: 1 });
     } catch (error: any) {
       console.error('创建数据源失败:', error);
-      
+
       // 检查是否是网络错误
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
-        error.request || 
+        error.request ||
         !error.response;
-      
+
       if (isNetworkError) {
-        set({ 
+        set({
           loading: false,
           serverConnected: false,
           error: null,
@@ -234,9 +269,9 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
         } else if (error.message) {
           errorMessage = error.message;
         }
-        
-        set({ 
-          error: errorMessage, 
+
+        set({
+          error: errorMessage,
           loading: false,
           serverConnected: true,
         });
@@ -258,23 +293,23 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
 
       // 调用真实API更新数据源
       await datasourceApi.update(id, data);
-      
+
       // 更新成功后静默刷新当前页数据
       set({ loading: false, serverConnected: true });
       await get().refreshDataSources();
     } catch (error: any) {
       console.error('更新数据源失败:', error);
-      
+
       // 检查是否是网络错误
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
-        error.request || 
+        error.request ||
         !error.response;
-      
+
       if (isNetworkError) {
-        set({ 
+        set({
           loading: false,
           serverConnected: false,
           error: null,
@@ -297,9 +332,9 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
         } else if (error.message) {
           errorMessage = error.message;
         }
-        
-        set({ 
-          error: errorMessage, 
+
+        set({
+          error: errorMessage,
           loading: false,
           serverConnected: true,
         });
@@ -313,43 +348,43 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
     try {
       // 调用真实API删除数据源
       await datasourceApi.delete(id);
-      
+
       const currentState = get();
-      
+
       // 删除成功后重新获取数据
       // 计算删除后应该显示的页码
       const newTotal = currentState.total - 1;
       const totalPages = Math.ceil(newTotal / currentState.pageSize);
       const targetPage = currentState.currentPage > totalPages ? Math.max(1, totalPages) : currentState.currentPage;
-      
+
       if (targetPage !== currentState.currentPage) {
         set({ currentPage: targetPage, loading: false, serverConnected: true });
       } else {
         set({ loading: false, serverConnected: true });
       }
-      
+
       await get().refreshDataSources({ page: targetPage });
     } catch (error: any) {
       console.error('删除数据源失败:', error);
-      
+
       // 检查是否是网络错误
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
-        error.request || 
+        error.request ||
         !error.response;
-      
+
       if (isNetworkError) {
-        set({ 
+        set({
           loading: false,
           serverConnected: false,
           error: null,
         });
         throw new Error('无法连接到服务器，请检查服务器状态');
       } else {
-        set({ 
-          error: error.message || '删除数据源失败', 
+        set({
+          error: error.message || '删除数据源失败',
           loading: false,
           serverConnected: true,
         });
@@ -362,25 +397,25 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
     try {
       // 调用真实API测试连接
       const response = await datasourceApi.testConnection(id);
-      
+
       if (response.data.success) {
         // 连接成功后静默刷新数据源列表，更新状态
         set({ serverConnected: true });
         await get().refreshDataSources();
       }
-      
+
       return response.data.success;
     } catch (error: any) {
       console.error('测试连接失败:', error);
-      
+
       // 检查是否是网络错误
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
-        error.request || 
+        error.request ||
         !error.response;
-      
+
       if (isNetworkError) {
         set({ serverConnected: false });
         throw new Error('无法连接到服务器，请检查服务器状态');
@@ -400,31 +435,31 @@ export const useDataSourceStore = create<DataSourceState>((set, get) => ({
       } else {
         await datasourceApi.disable(id);
       }
-      
+
       // 操作成功后静默刷新数据
       set({ loading: false, serverConnected: true });
       await get().refreshDataSources();
     } catch (error: any) {
       console.error('操作失败:', error);
-      
+
       // 检查是否是网络错误
-      const isNetworkError = 
-        error.code === 'ECONNREFUSED' || 
+      const isNetworkError =
+        error.code === 'ECONNREFUSED' ||
         error.message === 'Network Error' ||
         error.message?.includes('网络连接失败') ||
-        error.request || 
+        error.request ||
         !error.response;
-      
+
       if (isNetworkError) {
-        set({ 
+        set({
           loading: false,
           serverConnected: false,
           error: null,
         });
         throw new Error('无法连接到服务器，请检查服务器状态');
       } else {
-        set({ 
-          error: error.message || '操作失败', 
+        set({
+          error: error.message || '操作失败',
           loading: false,
           serverConnected: true,
         });

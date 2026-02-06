@@ -11,12 +11,13 @@ import DatasetDetailView from '@/components/dataset/DatasetDetailView';
 export default function DatasetDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const datasetId = Number(params.id);
+  // ID现在是URL编码的数据集名称，保持为字符串
+  const datasetId = params.id as string;
 
   // 从store获取状态
-  const { 
-    currentDataset, 
-    loading, 
+  const {
+    currentDataset,
+    loading,
     error,
     getDataset,
     setCurrentDataset,
@@ -29,7 +30,7 @@ export default function DatasetDetailPage() {
 
   // 加载数据集详情
   const LoadDataset = async () => {
-    if (!datasetId) {
+    if (!datasetId || datasetId === 'undefined') {
       setLocalError('无效的数据集ID');
       setLocalLoading(false);
       return;
@@ -127,7 +128,7 @@ export default function DatasetDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 overflow-y-auto">
       <div className="p-6 max-w-7xl mx-auto">
-        <DatasetDetailView 
+        <DatasetDetailView
           dataset={currentDataset}
           onBack={handleBack}
           onEdit={handleEdit}

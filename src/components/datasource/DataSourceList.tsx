@@ -1,21 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Database, 
-  AlertCircle, 
-  CheckCircle, 
-  XCircle, 
-  Filter, 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Database,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Filter,
   MoreVertical,
-  Power, 
-  PowerOff, 
-  TestTube2, 
-  Copy, 
+  Power,
+  PowerOff,
+  TestTube2,
+  Copy,
   RefreshCw,
   Eye,
   Settings,
@@ -110,7 +110,7 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
       case 'error':
         return {
           bg: 'bg-red-50',
-          border: 'border-red-200', 
+          border: 'border-red-200',
           text: 'text-red-800',
           borderLeft: 'border-red-500'
         };
@@ -156,21 +156,20 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
   const styles = getStyles();
 
   return (
-    <div 
-      className={`fixed top-4 right-4 transition-all duration-500 ${
-        isVisible ? 'transform translate-x-0 opacity-100' : 'transform translate-x-full opacity-0'
-      }`}
-      style={{ 
+    <div
+      className={`fixed top-4 right-4 transition-all duration-500 ${isVisible ? 'transform translate-x-0 opacity-100' : 'transform translate-x-full opacity-0'
+        }`}
+      style={{
         zIndex: 99999,
         pointerEvents: isVisible ? 'auto' : 'none'
       }}
     >
       <div className={`glass-card p-4 border-l-4 ${styles.borderLeft} shadow-2xl max-w-sm min-w-[320px] backdrop-blur-md`}
-           style={{ 
-             background: 'rgba(255, 255, 255, 0.95)',
-             backdropFilter: 'blur(12px)',
-             WebkitBackdropFilter: 'blur(12px)',
-           }}>
+        style={{
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}>
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
             {getIcon()}
@@ -197,15 +196,15 @@ const Notification: React.FC<NotificationProps> = ({ type, message, onClose }) =
   );
 };
 
-const DataSourceList: React.FC<DataSourceListProps> = ({ 
-  onAddDataSource, 
-  onEditDataSource 
+const DataSourceList: React.FC<DataSourceListProps> = ({
+  onAddDataSource,
+  onEditDataSource
 }) => {
   // 新增状态
   const [showConnections, setShowConnections] = useState(false);
   const [showTables, setShowTables] = useState(false);
   const [selectedDataSource, setSelectedDataSource] = useState<DataSource | null>(null);
-  
+
   // 确认对话框状态
   const [confirmDialog, setConfirmDialog] = useState<{
     visible: boolean;
@@ -218,24 +217,25 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
     title: '',
     message: '',
     type: 'danger',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
-  const { 
-    dataSources, 
-    loading, 
-    error, 
+  const {
+    dataSources,
+    loading,
+    error,
     total,
     currentPage,
     pageSize,
     serverConnected,
     fetchDataSources,
     refreshDataSources,
-    checkServerConnection, 
-    deleteDataSource, 
+    checkServerConnection,
+    deleteDataSource,
     testConnection,
-    toggleEnable
+    toggleEnable,
+    stats
   } = useDataSourceStore();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -250,10 +250,10 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
 
   // 测试连接状态
   const [testingConnections, setTestingConnections] = useState<Set<string>>(new Set());
-  
+
   // 刷新状态
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // 通知状态
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info' | 'warning';
@@ -272,7 +272,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
         fetchDataSources();
       }
     };
-    
+
     initializeConnection();
   }, [checkServerConnection, fetchDataSources]);
 
@@ -293,14 +293,14 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
 
   const filteredDataSources = dataSources.filter(ds => {
     const matchesSearch = ds.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ds.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      ds.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || ds.type.toLowerCase() === selectedType.toLowerCase();
     const matchesCategory = selectedCategory === 'all' || getDataSourceCategory(ds.type) === selectedCategory;
     const matchesStatus = selectedStatus === 'all' || ds.status.toString() === selectedStatus;
-    const matchesEnabled = selectedEnabled === 'all' || 
+    const matchesEnabled = selectedEnabled === 'all' ||
       (selectedEnabled === 'true' && (typeof ds.enabled === 'boolean' ? ds.enabled : Boolean(ds.enabled))) ||
       (selectedEnabled === 'false' && (typeof ds.enabled === 'boolean' ? !ds.enabled : !Boolean(ds.enabled)));
-    
+
     return matchesSearch && matchesType && matchesCategory && matchesStatus && matchesEnabled;
   });
 
@@ -455,7 +455,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   // 刷新数据源
   const handleRefresh = async () => {
     if (isRefreshing) return;
-    
+
     setIsRefreshing(true);
     try {
       // 先检查服务器连接状态
@@ -479,13 +479,13 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
   const handleTestConnection = async (e: React.MouseEvent, id: string | number) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const dsId = String(id);
-    
+
     if (testingConnections.has(dsId)) return;
-    
+
     setTestingConnections(prev => new Set(prev).add(dsId));
-    
+
     try {
       const result = await testConnection(dsId);
       if (result) {
@@ -581,14 +581,12 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
           <div className="flex items-center space-x-3">
             <h1 className="text-3xl font-bold text-gray-900 text-shadow">数据源管理</h1>
             {/* 服务器连接状态指示器 */}
-            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
-              serverConnected 
-                ? 'bg-green-100 text-green-700 border border-green-200' 
-                : 'bg-orange-100 text-orange-700 border border-orange-200'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                serverConnected ? 'bg-green-500' : 'bg-orange-500'
-              }`}></div>
+            <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${serverConnected
+              ? 'bg-green-100 text-green-700 border border-green-200'
+              : 'bg-orange-100 text-orange-700 border border-orange-200'
+              }`}>
+              <div className={`w-2 h-2 rounded-full ${serverConnected ? 'bg-green-500' : 'bg-orange-500'
+                }`}></div>
               <span>{serverConnected ? '服务已连接' : '服务未连接'}</span>
             </div>
           </div>
@@ -604,7 +602,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? '刷新中...' : '刷新'}</span>
           </button>
-          <button 
+          <button
             onClick={handleAddDataSource}
             className="btn-glass-primary flex items-center space-x-2"
             disabled={!serverConnected}
@@ -616,13 +614,13 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
         </div>
       </div>
 
-{/* Statistics */}
-<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="glass-card p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">总数据源</p>
-              <p className="text-2xl font-bold text-gray-900">{dataSources.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
             <Database className="w-8 h-8 text-blue-500" />
           </div>
@@ -632,7 +630,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
             <div>
               <p className="text-sm font-medium text-gray-600">已连接</p>
               <p className="text-2xl font-bold text-green-900">
-                {dataSources.filter(ds => (typeof ds.status === 'string' ? parseInt(ds.status) : ds.status) === 1).length}
+                {stats.active}
               </p>
             </div>
             <CheckCircle className="w-8 h-8 text-green-500" />
@@ -643,7 +641,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
             <div>
               <p className="text-sm font-medium text-gray-600">连接失败</p>
               <p className="text-2xl font-bold text-red-900">
-                {dataSources.filter(ds => (typeof ds.status === 'string' ? parseInt(ds.status) : ds.status) === 2).length}
+                {stats.error}
               </p>
             </div>
             <XCircle className="w-8 h-8 text-red-500" />
@@ -654,14 +652,14 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
             <div>
               <p className="text-sm font-medium text-gray-600">已启用</p>
               <p className="text-2xl font-bold text-blue-900">
-                {dataSources.filter(ds => (typeof ds.enabled === 'boolean' ? ds.enabled : Boolean(ds.enabled))).length}
+                {stats.enabled}
               </p>
             </div>
             <Power className="w-8 h-8 text-blue-500" />
           </div>
         </div>
       </div>
-      
+
       {/* Filters */}
       <div className="glass-card p-4">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
@@ -741,13 +739,13 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">无法连接到服务器</h3>
                 <p className="text-gray-500 mb-4">
-                  数据源服务暂时不可用，请检查：<br/>
-                  • 后台服务是否已启动<br/>
-                  • 网络连接是否正常<br/>
+                  数据源服务暂时不可用，请检查：<br />
+                  • 后台服务是否已启动<br />
+                  • 网络连接是否正常<br />
                   • 服务地址配置是否正确
                 </p>
                 <div className="flex items-center justify-center space-x-3">
-                  <button 
+                  <button
                     onClick={handleRefresh}
                     disabled={isRefreshing}
                     className="btn-glass-secondary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -756,7 +754,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     <span>{isRefreshing ? '重试中...' : '重试连接'}</span>
                   </button>
-                  <button 
+                  <button
                     onClick={handleAddDataSource}
                     className="btn-glass-primary flex items-center space-x-2"
                     disabled
@@ -773,7 +771,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                 <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">暂无数据源</h3>
                 <p className="text-gray-500 mb-4">开始添加您的第一个数据源连接</p>
-                <button 
+                <button
                   onClick={handleAddDataSource}
                   className="btn-glass-primary"
                 >
@@ -801,8 +799,8 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                 </thead>
                 <tbody>
                   {filteredDataSources.map((ds, index) => (
-                    <tr 
-                      key={ds.id} 
+                    <tr
+                      key={ds.id}
                       className="border-b border-glass-100 hover:bg-glass-50 transition-colors duration-200"
                     >
                       <td className="py-4 px-6">
@@ -832,11 +830,10 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                          (typeof ds.enabled === 'boolean' ? ds.enabled : Boolean(ds.enabled))
-                            ? 'bg-green-500/10 text-green-700 border-green-200'
-                            : 'bg-gray-500/10 text-gray-700 border-gray-200'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${(typeof ds.enabled === 'boolean' ? ds.enabled : Boolean(ds.enabled))
+                          ? 'bg-green-500/10 text-green-700 border-green-200'
+                          : 'bg-gray-500/10 text-gray-700 border-gray-200'
+                          }`}>
                           {(typeof ds.enabled === 'boolean' ? ds.enabled : Boolean(ds.enabled)) ? '已启用' : '已禁用'}
                         </span>
                       </td>
@@ -848,54 +845,53 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center justify-center space-x-2">
-                          <button 
+                          <button
                             onClick={(e) => handleViewDetail(ds)}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                             title="查看详情"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleConnections(ds)}
                             className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors duration-200"
                             title="连接管理"
                           >
                             <User className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleTables(ds)}
                             className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors duration-200"
                             title="表管理"
                           >
                             <Database className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleTestConnection(e, ds.id)}
                             disabled={testingConnections.has(String(ds.id))}
-                            className={`p-2 rounded-lg transition-colors ${
-                              testingConnections.has(String(ds.id))
-                                ? 'text-gray-400 cursor-not-allowed'
-                                : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
-                            }`}
+                            className={`p-2 rounded-lg transition-colors ${testingConnections.has(String(ds.id))
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
+                              }`}
                             title="测试连接"
                           >
                             <Activity className={`w-4 h-4 ${testingConnections.has(String(ds.id)) ? 'animate-spin' : ''}`} />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleEditDataSource(ds)}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                             title="编辑"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleCopyConfig(ds)}
                             className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-200"
                             title="复制配置"
                           >
                             <Copy className="w-4 h-4" />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleDelete(ds.id)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
                             title="删除"
@@ -925,7 +921,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
-                    
+
                     <div className="flex items-center space-x-1">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
@@ -938,23 +934,22 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                         } else {
                           pageNum = currentPage - 2 + i;
                         }
-                        
+
                         return (
                           <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
-                            className={`px-3 py-1 rounded-lg text-sm transition-colors duration-200 ${
-                              currentPage === pageNum
-                                ? 'bg-blue-500 text-white'
-                                : 'text-gray-700 hover:bg-gray-100'
-                            }`}
+                            className={`px-3 py-1 rounded-lg text-sm transition-colors duration-200 ${currentPage === pageNum
+                              ? 'bg-blue-500 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                              }`}
                           >
                             {pageNum}
                           </button>
                         );
                       })}
                     </div>
-                    
+
                     <button
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage >= totalPages}
@@ -995,7 +990,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
 
       {/* 数据源详情弹窗 */}
       {showDetailModal && selectedDataSource && (
-        <div 
+        <div
           className="modal-overlay animate-fade-in"
           onClick={(e) => {
             e.preventDefault();
@@ -1009,7 +1004,7 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
           }}
           tabIndex={-1}
         >
-          <div 
+          <div
             className="glass-card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto modal-content"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1123,8 +1118,8 @@ const DataSourceList: React.FC<DataSourceListProps> = ({
                   <div>
                     <label className="text-sm font-medium text-gray-600">最后连接</label>
                     <p className="text-gray-900 mt-1">
-                      {selectedDataSource.updateTime 
-                        ? new Date(selectedDataSource.updateTime).toLocaleString() 
+                      {selectedDataSource.updateTime
+                        ? new Date(selectedDataSource.updateTime).toLocaleString()
                         : '从未连接'
                       }
                     </p>
